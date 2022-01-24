@@ -13,7 +13,7 @@ steps:
   inputs:
     script: |
       echo "Assigning Package Version"
-      projectRevision=`xmllint --xpath "/Project/PropertyGroup/Version/text()" Radzen.Blazor.csproj`
+      projectRevision=`grep -E "^\s*<Version>(.*)</Version>\$" Radzen.Blazor.csproj | grep -E "\d+\.\d+\.\d+" -o`
       
       echo "##vso[task.setvariable package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
 
