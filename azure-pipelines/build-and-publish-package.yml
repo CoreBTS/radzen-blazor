@@ -1,0 +1,44 @@
+# Pipeline to Build and Package custom Radzen.Blazor release
+
+trigger:
+- build-and-package
+
+pool:
+  vmImage: ubuntu-latest
+
+name: '$(Date:yyyyMMdd)$(Rev:.rrr)'
+
+steps:
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo "Assigning Package Version"
+      projectRevision=`xmllint --xpath "/Project/PropertyGroup/Version/text()" Radzen.Blazor.csproj`
+      
+      echo "##vso[task.setvariable package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
+
+- task: DotNetCoreCLI@2
+  displayName: Build Blazor Components
+  env:
+    package_semver: $(package_semver)
+  inputs:
+    command: 'build'
+    projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
+    arguments: '-c Release -p:Version=$package_semver'
+
+- task: DotNetCoreCLI@2
+  displayName: Package for NuGet
+  env:
+    package_semver: $(package_semver)
+  inputs:
+    command: 'pack'
+    packagesToPack: 'Radzen.Blazor/Radzen.Blazor.csproj'
+    nobuild: true
+    versioningScheme: 'byEnvVar'
+    versionEnvVar: 'package_semver'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    artifact: 'NugetPackage'
+    publishLocation: 'pipeline'
