@@ -47,7 +47,16 @@ steps:
     arguments: '--no-build --output $(Build.ArtifactStagingDirectory) -c Release -p:Version=$(AssignPackageVersion.SemVer)'
 
 - task: PublishPipelineArtifact@1
+  displayName: Publish Package to Pipeline
   inputs:
     targetPath: '$(Build.ArtifactStagingDirectory)/Radzen.Blazor.$(AssignPackageVersion.SemVer).nupkg'
     artifact: 'NugetPackage'
     publishLocation: 'pipeline'
+
+- task: DotNetCoreCLI@2
+  displayName: Push Package to Internal Feed
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '45792084-2784-4a21-a262-37a79013bda8'
