@@ -13,9 +13,11 @@ steps:
   inputs:
     script: |
       echo "Assigning Package Version"
-      projectRevision=`grep -E "^\s*<Version>(.*)</Version>\$" Radzen.Blazor/Radzen.Blazor.csproj | grep -E "\d+\.\d+\.\d+" -o`
-      
-      echo "##vso[task.setvariable package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
+      echo "Running grep -E '<Version>.*</Version>' $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj | grep -E '\d+\.\d+\.\d+' -o"
+      projectRevision=`grep -E '<Version>.*</Version>' $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj | grep -E '\d+\.\d+\.\d+' -o`
+      echo "Project Version: $projectRevision"
+
+      echo "##vso[task.setvariable variable=package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
 
 - task: DotNetCoreCLI@2
   displayName: Build Blazor Components
@@ -24,7 +26,7 @@ steps:
   inputs:
     command: 'build'
     projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
-    arguments: '-c Release -p:Version=$package_semver'
+    arguments: '-c $(BuildConfiguration) -p:Version=$package_semver'
 
 - task: DotNetCoreCLI@2
   displayName: Package for NuGet
