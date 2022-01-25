@@ -40,14 +40,12 @@ steps:
 
 - task: DotNetCoreCLI@2
   displayName: Package for NuGet
-  env:
-    package_semver: $(AssignPackageVersion.SemVer)
   inputs:
     command: 'pack'
     packagesToPack: 'Radzen.Blazor/Radzen.Blazor.csproj'
     nobuild: true
-    versioningScheme: 'byEnvVar'
-    versionEnvVar: 'package_semver'
+    versioningScheme: 'off'
+    arguments: '-c Release -p:Version=$(AssignPackageVersion.SemVer)'
 
 - task: PublishPipelineArtifact@1
   inputs:
