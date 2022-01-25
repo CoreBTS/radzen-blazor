@@ -14,11 +14,11 @@ steps:
     script: |
       echo "Assigning Package Version"
       cat $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj
-      
+
       versionLine=`grep -E '<Version>.*</Version>' $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj`
       echo "Version Line: $versionLine"
 
-      projectRevision=`echo $versionLine | grep -E '\d+\.\d+\.\d+' -o`
+      projectRevision=`echo $versionLine | grep -e '[.0-9]*' --only-matching`
       echo "Project Version: $projectRevision"
 
       echo "##vso[task.setvariable variable=package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
