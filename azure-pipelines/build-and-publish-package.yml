@@ -10,10 +10,11 @@ name: '$(Date:yyyyMMdd)$(Rev:.rrr)'
 
 steps:
 - task: CmdLine@2
+  displayName: Assign Package Version
+  name: AssignPackageVersion
   inputs:
     script: |
       echo "Assigning Package Version"
-      cat $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj
 
       versionLine=`grep -E '<Version>.*</Version>' $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj`
       echo "Version Line: $versionLine"
@@ -21,19 +22,19 @@ steps:
       projectRevision=`echo $versionLine | grep -e '[.0-9]*' --only-matching`
       echo "Project Version: $projectRevision"
 
-      echo "##vso[task.setvariable variable=package_semver;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
+      echo "##vso[task.setvariable variable=SemVer;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
 
 - task: DotNetCoreCLI@2
   displayName: Build Blazor Components
   inputs:
     command: 'build'
     projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
-    arguments: '-c $(BuildConfiguration) -p:Version=$(package_semver)'
+    arguments: '-c Release -p:Version=$(AssignPackageVersion.SemVer)'
 
 - task: DotNetCoreCLI@2
   displayName: Package for NuGet
   env:
-    package_semver: $(package_semver)
+    package_semver: $(AssignPackageVersion.SemVer)
   inputs:
     command: 'pack'
     packagesToPack: 'Radzen.Blazor/Radzen.Blazor.csproj'
