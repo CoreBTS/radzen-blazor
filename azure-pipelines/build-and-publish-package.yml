@@ -41,11 +41,10 @@ steps:
 - task: DotNetCoreCLI@2
   displayName: Package for NuGet
   inputs:
-    command: 'pack'
-    packagesToPack: 'Radzen.Blazor/Radzen.Blazor.csproj'
-    nobuild: true
-    versioningScheme: 'off'
-    arguments: '-c Release -p:Version=$(AssignPackageVersion.SemVer)'
+    command: 'custom'
+    projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
+    custom: 'pack'
+    arguments: '--no-build -c Release -p:Version=$(AssignPackageVersion.SemVer)'
 
 - task: PublishPipelineArtifact@1
   inputs:
