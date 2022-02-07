@@ -221,8 +221,7 @@ namespace Radzen.Blazor
             {
                 if (_groupedPagedView == null)
                 {
-
-                    var query = View.OrderBy(string.Join(',', groups.Select(g => $"np({g.Property}) {(g.SortOrder == null ? "" : g.SortOrder == SortOrder.Ascending ? " asc" : " desc")}")));
+                    var query = groups.Count(g => g.SortOrder == null) == Groups.Count ? View : View.OrderBy(string.Join(',', groups.Select(g => $"np({g.Property}) {(g.SortOrder == null ? "" : g.SortOrder == SortOrder.Ascending ? " asc" : " desc")}")));
                     var v = (AllowPaging && !LoadData.HasDelegate ? query.Skip(skip).Take(PageSize) : query).ToList().AsQueryable();
                     _groupedPagedView = v.GroupByMany(groups.Select(g => $"np({g.Property})").ToArray()).ToList();
                 }
@@ -232,7 +231,7 @@ namespace Radzen.Blazor
 
         internal string getFrozenColumnClass(RadzenDataGridColumn<TItem> column, IList<RadzenDataGridColumn<TItem>> visibleColumns)
         {
-            return column.Frozen ? "rz-frozen-cell" : "";
+            return column.IsFrozen() ? "rz-frozen-cell" : "";
         }
 
         /// <summary>
@@ -518,6 +517,17 @@ namespace Radzen.Blazor
             if (HeaderCellRender != null)
             {
                 HeaderCellRender(args);
+            }
+
+            var sortOrder = column.GetSortOrder();
+            switch (sortOrder)
+            {
+                case SortOrder.Ascending:
+                    args.Attributes.Add("aria-sort", "ascending");
+                    break;
+                case SortOrder.Descending:
+                    args.Attributes.Add("aria-sort", "descending");
+                    break;
             }
 
             return new System.Collections.ObjectModel.ReadOnlyDictionary<string, object>(args.Attributes);
@@ -1059,11 +1069,25 @@ namespace Radzen.Blazor
         public EventCallback<TItem> RowExpand { get; set; }
 
         /// <summary>
+        /// Gets or sets the group row expand callback.
+        /// </summary>
+        /// <value>The group row expand callback.</value>
+        [Parameter]
+        public EventCallback<Group> GroupRowExpand { get; set; }
+
+        /// <summary>
         /// Gets or sets the row collapse callback.
         /// </summary>
         /// <value>The row collapse callback.</value>
         [Parameter]
         public EventCallback<TItem> RowCollapse { get; set; }
+
+        /// <summary>
+        /// Gets or sets the group row collapse callback.
+        /// </summary>
+        /// <value>The group row collapse callback.</value>
+        [Parameter]
+        public EventCallback<Group> GroupRowCollapse { get; set; }
 
         /// <summary>
         /// Gets or sets the row render callback. Use it to set row attributes.
@@ -1134,7 +1158,7 @@ namespace Radzen.Blazor
 
             if (resetColumnState)
             {
-                allColumns.ToList().ForEach(c => { c.SetFilterValue(null); c.SetSecondFilterOperator(FilterOperator.Equals); });
+                allColumns.ToList().ForEach(c => { c.SetFilterValue(null); c.SetFilterValue(null, false); c.SetSecondFilterOperator(FilterOperator.Equals); });
                 allColumns.ToList().ForEach(c => { c.ResetSortOrder(); });
                 sorts.Clear();
            }
@@ -1278,10 +1302,12 @@ namespace Radzen.Blazor
 
             if (!collapsedGroupItems.Keys.Contains(item))
             {
+                await GroupRowCollapse.InvokeAsync(item.Group);
                 collapsedGroupItems.Add(item, true);
             }
             else
             {
+                await GroupRowExpand.InvokeAsync(item.Group);
                 collapsedGroupItems.Remove(item);
             }
 
