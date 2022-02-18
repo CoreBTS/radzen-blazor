@@ -276,8 +276,11 @@ namespace Radzen.Blazor
             column.SetFilterOperator(filterOperator);
         }
 
-        private readonly List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
+        private List<RadzenDataGridColumn<TItem>> columns = new List<RadzenDataGridColumn<TItem>>();
         internal readonly List<RadzenDataGridColumn<TItem>> childColumns = new List<RadzenDataGridColumn<TItem>>();
+        private List<RadzenDataGridColumn<TItem>> allColumns = new List<RadzenDataGridColumn<TItem>>();
+        private List<RadzenDataGridColumn<TItem>> allPickableColumns = new List<RadzenDataGridColumn<TItem>>();
+        internal object selectedColumns;
 
         /// <summary>
         /// Gets or sets the columns.
@@ -285,6 +288,25 @@ namespace Radzen.Blazor
         /// <value>The columns.</value>
         [Parameter]
         public RenderFragment Columns { get; set; }
+
+        internal void UpdateColumnsOrder()
+        {
+            if (allColumns.Any(c => c.GetOrderIndex().HasValue))
+            {
+                var columnsWithoutOrderIndex = columns.Where(c => !c.GetOrderIndex().HasValue).ToList();
+                for (var i = 0; i < columnsWithoutOrderIndex.Count; i++)
+                {
+                    columnsWithoutOrderIndex[i].SetOrderIndex(columns.IndexOf(columnsWithoutOrderIndex[i]));
+                }
+
+                columns = columns.OrderBy(c => c.GetOrderIndex()).ToList();
+
+                if (AllowColumnPicking)
+                {
+                    allPickableColumns = allColumns.Where(c => c.Pickable).OrderBy(c => c.GetOrderIndex()).ToList();
+                }
+            }
+        }
 
         internal void AddColumn(RadzenDataGridColumn<TItem> column)
         {
@@ -311,6 +333,19 @@ namespace Radzen.Blazor
                 sorts.Add(descriptor);
             }
 
+            if (!allColumns.Contains(column))
+            {
+                allColumns.Add(column);
+            }
+
+            if (AllowColumnPicking)
+            {
+                selectedColumns = allColumns;
+                allPickableColumns = allColumns.Where(c => c.Pickable).ToList();
+            }
+
+            UpdateColumnsOrder();
+
             StateHasChanged();
         }
 
@@ -325,6 +360,13 @@ namespace Radzen.Blazor
             {
                 childColumns.Remove(column);
             }
+
+            if (allColumns.Contains(column))
+            {
+                allColumns.Remove(column);
+            }
+
+            UpdateColumnsOrder();
 
             if (!disposed)
             {
@@ -467,16 +509,8 @@ namespace Radzen.Blazor
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.closePopup", $"{PopupID}{column.GetFilterProperty()}");
             }
-            column.SetFilterValue(null);
-            column.SetFilterValue(null, false);
-            column.SetFilterOperator(null);
-            column.SetSecondFilterOperator(null);
 
-            column.FilterValue = null;
-            column.SecondFilterValue = null;
-            column.FilterOperator = default(FilterOperator);
-            column.SecondFilterOperator = default(FilterOperator);
-            column.LogicalFilterOperator = default(LogicalFilterOperator);
+            column.ClearFilters();
 
             skip = 0;
             CurrentPage = 0;
@@ -817,6 +851,20 @@ namespace Radzen.Blazor
         public bool AllowColumnReorder { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether column picking is allowed.
+        /// </summary>
+        /// <value><c>true</c> if column picking is allowed; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool AllowColumnPicking { get; set; }
+
+        /// <summary>
+        /// Gets or sets the column picker columns showing text.
+        /// </summary>
+        /// <value>The column picker columns showing text.</value>
+        [Parameter]
+        public string ColumnsShowingText { get; set; } = "columns showing";
+
+        /// <summary>
         /// Gets or sets a value indicating whether grouping is allowed.
         /// </summary>
         /// <value><c>true</c> if grouping is allowed; otherwise, <c>false</c>.</value>
@@ -877,12 +925,19 @@ namespace Radzen.Blazor
                     columns.Remove(columnToReorder);
                     columns.Insert(actualColumnIndexTo, columnToReorder);
 
+                    columnToReorder.SetOrderIndex(columns.IndexOf(columnToReorder));
+                    columnToReorderTo.SetOrderIndex(columns.IndexOf(columnToReorderTo));
+
+                    UpdateColumnsOrder();
+
                     await ColumnReordered.InvokeAsync(new DataGridColumnReorderedEventArgs<TItem>
                     {
                         Column = columnToReorder,
                         OldIndex = actualColumnIndexFrom,
                         NewIndex = actualColumnIndexTo
                     });
+
+                    StateHasChanged();
                 }
 
                 indexOfColumnToReoder = null;
@@ -909,14 +964,6 @@ namespace Radzen.Blazor
         internal string GetOrderBy()
         {
             return string.Join(",", sorts.Select(d => allColumns.ToList().Where(c => c.GetSortProperty() == d.Property).FirstOrDefault()).Where(c => c != null).Select(c => c.GetSortOrderAsString(IsOData())));
-        }
-
-        internal IEnumerable<RadzenDataGridColumn<TItem>> allColumns
-        {
-            get
-            {
-                 return columns.Concat(childColumns);
-            }
         }
 
         /// <summary>

@@ -471,20 +471,37 @@ window.Radzen = {
     var uploadComponent =
       Radzen.uploadComponents && Radzen.uploadComponents[fileInput.id];
     if (uploadComponent) {
+      if (uploadComponent.localFiles) {
+        // Clear any previously created preview URL(s)
+        for (var i = 0; i < uploadComponent.localFiles.length; i++) {
+          var file = uploadComponent.localFiles[i];
+          if (file.Url) {
+            URL.revokeObjectURL(file.Url);
+          }
+        }
+      }
+
       uploadComponent.files = Array.from(fileInput.files);
+      uploadComponent.localFiles = files;
       uploadComponent.invokeMethodAsync('RadzenUpload.OnChange', files);
     }
 
     for (var i = 0; i < fileInput.files.length; i++) {
       var file = fileInput.files[i];
-      URL.revokeObjectURL(file.Url);
+      if (file.Url) {
+        URL.revokeObjectURL(file.Url);
+      }
     }
   },
   removeFileFromUpload: function (fileInput, name) {
     var uploadComponent = Radzen.uploadComponents && Radzen.uploadComponents[fileInput.id];
     if (!uploadComponent) return;
     var file = uploadComponent.files.find(function (f) { return f.name == name; })
-    if (!file) return;
+    if (!file) { return; }
+    var localFile = uploadComponent.localFiles.find(function (f) { return f.Name == name; });
+    if (localFile) {
+      URL.revokeObjectURL(localFile.Url);
+    }
     var index = uploadComponent.files.indexOf(file)
     if (index != -1) {
         uploadComponent.files.splice(index, 1);
@@ -493,8 +510,8 @@ window.Radzen = {
   },
   upload: function (fileInput, url, multiple, clear) {
     var uploadComponent = Radzen.uploadComponents && Radzen.uploadComponents[fileInput.id];
-    if(!uploadComponent) return;
-      if (!uploadComponent.files || clear) {
+    if (!uploadComponent) { return; }
+    if (!uploadComponent.files || clear) {
         uploadComponent.files = Array.from(fileInput.files);
     }
     var data = new FormData();
@@ -843,7 +860,8 @@ window.Radzen = {
         }
     }
   },
-  openDialog: function (options) {
+  openDialog: function (options, dialogService) {
+    Radzen.dialogService = dialogService;
     if (
       document.documentElement.scrollHeight >
       document.documentElement.clientHeight
@@ -866,9 +884,32 @@ window.Radzen = {
             }
         }, 500);
     }
+    if (options.closeDialogOnEsc) {
+        document.removeEventListener('keydown', Radzen.closePopupOrDialog);
+        document.addEventListener('keydown', Radzen.closePopupOrDialog);
+    }
   },
   closeDialog: function () {
     document.body.classList.remove('no-scroll');
+  },
+  closePopupOrDialog: function (e) {
+      e = e || window.event;
+      var isEscape = false;
+      if ("key" in e) {
+          isEscape = (e.key === "Escape" || e.key === "Esc");
+      } else {
+          isEscape = (e.keyCode === 27);
+      }
+      if (isEscape && Radzen.dialogService) {
+          var popups = document.querySelectorAll('.rz-popup,.rz-overlaypanel');
+          for (var i = 0; i < popups.length; i++) {
+              if (popups[i].style.display != 'none') {
+                  return;
+              }
+          }
+
+          Radzen.dialogService.invokeMethodAsync('DialogService.Close', null);
+      }
   },
   getInputValue: function (arg) {
     var input =

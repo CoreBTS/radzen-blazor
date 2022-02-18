@@ -122,6 +122,19 @@ namespace Radzen
             });
         }
 
+        /// <inheritdoc />
+        public override bool HasValue
+        {
+            get
+            {
+                if (typeof(T) == typeof(string))
+                {
+                    return !string.IsNullOrEmpty($"{internalValue}");
+                }
+                return internalValue != null;
+            }
+        }
+
         /// <summary>
         /// Renders the item.
         /// </summary>
@@ -285,8 +298,6 @@ namespace Radzen
                         selectedItem = null;
                         selectedItems.Clear();
                     }
-
-                    SelectItemFromValue(internalValue);
 
                     OnDataChanged();
 
