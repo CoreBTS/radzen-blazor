@@ -314,7 +314,7 @@ namespace Radzen
         {
             get
             {
-                return $"popup{UniqueID}";
+                return $"popup-{GetId()}";
             }
         }
 
@@ -326,7 +326,7 @@ namespace Radzen
         {
             get
             {
-                return $"search{UniqueID}";
+                return $"search-{GetId()}";
             }
         }
 
@@ -372,7 +372,7 @@ namespace Radzen
         /// <summary>
         /// The list
         /// </summary>
-        protected ElementReference list;
+        protected ElementReference? list;
         /// <summary>
         /// The selected index
         /// </summary>
@@ -392,7 +392,10 @@ namespace Radzen
             await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID, true);
             await JSRuntime.InvokeVoidAsync("Radzen.focusElement", isFilter ? UniqueID : SearchID);
 
-            await JSRuntime.InvokeVoidAsync("Radzen.selectListItem", search, list, selectedIndex);
+            if (list != null)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.selectListItem", search, list, selectedIndex);
+            }
         }
 
         /// <summary>
@@ -806,7 +809,7 @@ namespace Radzen
         /// </summary>
         /// <param name="item">The item.</param>
         /// <param name="raiseChange">if set to <c>true</c> [raise change].</param>
-        protected async System.Threading.Tasks.Task SelectItem(object item, bool raiseChange = true)
+        public async System.Threading.Tasks.Task SelectItem(object item, bool raiseChange = true)
         {
             if (!Multiple)
             {

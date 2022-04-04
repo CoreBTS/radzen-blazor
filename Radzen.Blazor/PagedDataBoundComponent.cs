@@ -255,16 +255,22 @@ namespace Radzen
         /// </summary>
         /// <param name="firstRender">if set to <c>true</c> [first render].</param>
         /// <returns>Task.</returns>
-        protected override Task OnAfterRenderAsync(bool firstRender)
+        protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             this.firstRender = firstRender;
+
+            await ReloadOnFirstRender();
+
+            await base.OnAfterRenderAsync(firstRender);
+        }
+
+        internal virtual async Task ReloadOnFirstRender()
+        {
             if (firstRender && Visible && (LoadData.HasDelegate && Data == null))
             {
-                InvokeAsync(Reload);
+                await InvokeAsync(Reload);
                 StateHasChanged();
             }
-
-            return base.OnAfterRenderAsync(firstRender);
         }
 
         /// <summary>
@@ -282,6 +288,13 @@ namespace Radzen
         protected RadzenPager bottomPager;
 
         /// <summary>
+        /// Gets or sets the page callback.
+        /// </summary>
+        /// <value>The page callback.</value>
+        [Parameter]
+        public EventCallback<PagerEventArgs> Page { get; set; }
+
+        /// <summary>
         /// Handles the <see cref="E:PageChanged" /> event.
         /// </summary>
         /// <param name="args">The <see cref="PagerEventArgs"/> instance containing the event data.</param>
@@ -289,6 +302,9 @@ namespace Radzen
         {
             skip = args.Skip;
             CurrentPage = args.PageIndex;
+
+            await Page.InvokeAsync(args);
+
             await InvokeAsync(Reload);
         }
 

@@ -582,7 +582,7 @@ window.Radzen = {
     if (e.clipboardData) {
       var value = e.clipboardData.getData('text');
 
-      if (value && /^-?\d*\.?\d*$/.test(value)) {
+      if (value && !isNaN(+value)) {
         return;
       }
 
@@ -748,6 +748,7 @@ window.Radzen = {
     }
 
     Radzen[id] = function (e) {
+        if(e.type == 'contextmenu') return;
         if (!/Android/i.test(navigator.userAgent) && e.type == 'resize') {
             Radzen.closePopup(id, instance, callback);
             return;
@@ -927,7 +928,24 @@ window.Radzen = {
       input.value = value;
     }
   },
-  readFileAsBase64: function (fileInput, maxFileSize) {
+  readFileAsBase64: function (fileInput, maxFileSize, maxWidth, maxHeight) {
+    var calculateWidthAndHeight = function (img) {
+      var width = img.width;
+      var height = img.height;
+      // Change the resizing logic
+      if (width > height) {
+        if (width > maxWidth) {
+          height = height * (maxWidth / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = width * (maxHeight / height);
+          height = maxHeight;
+        }
+      }
+      return { width, height };
+    };
     var readAsDataURL = function (fileInput) {
       return new Promise(function (resolve, reject) {
         var reader = new FileReader();
@@ -938,10 +956,25 @@ window.Radzen = {
         reader.addEventListener(
           'load',
           function () {
-            resolve(reader.result);
+            if (maxWidth > 0 && maxHeight > 0) {
+              var img = document.createElement("img");
+              img.onload = function (event) {
+                // Dynamically create a canvas element
+                var canvas = document.createElement("canvas");
+                var res = calculateWidthAndHeight(img);
+                canvas.width = res.width;
+                canvas.height = res.height;
+                var ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, res.width, res.height);
+                resolve(canvas.toDataURL(fileInput.type));
+              }
+              img.src = reader.result;
+            } else {
+              resolve(reader.result);
+            }
           },
           false
-        );
+          );
         var file = fileInput.files[0];
         if (!file) return;
         if (file.size <= maxFileSize) {

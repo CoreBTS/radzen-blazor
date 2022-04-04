@@ -43,10 +43,7 @@ namespace Radzen.Blazor
 
                 var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour, CurrentDate.Minute, CurrentDate.Second);
 
-                if (!object.Equals(newValue, Value))
-                {
-                    await UpdateValueFromTime(newValue);
-                }
+                await UpdateValueFromTime(newValue);
             }
         }
 
@@ -67,10 +64,7 @@ namespace Radzen.Blazor
 
                 var newValue = new DateTime(CurrentDate.Year, CurrentDate.Month, CurrentDate.Day, newHour, CurrentDate.Minute, CurrentDate.Second);
 
-                if (!object.Equals(newValue, Value))
-                {
-                    await UpdateValueFromTime(newValue);
-                }
+                await UpdateValueFromTime(newValue);
             }
         }
 
@@ -334,12 +328,6 @@ namespace Radzen.Blazor
                         {
                             DateTimeValue = null;
                         }
-
-                        if (DateTimeValue.HasValue && DateTimeValue.Value == default(DateTime))
-                        {
-                            _value = null;
-                            _dateTimeValue = null;
-                        }
                     }
                 }
             }
@@ -353,7 +341,7 @@ namespace Radzen.Blazor
             {
                 if (_currentDate == default(DateTime))
                 {
-                    _currentDate = HasValue && DateTimeValue.Value != default(DateTime) ? DateTimeValue.Value : DateTime.Today;
+                    _currentDate = HasValue ? DateTimeValue.Value : DateTime.Today;
                 }
                 return _currentDate;
             }
@@ -374,7 +362,16 @@ namespace Radzen.Blazor
         {
             get
             {
+                if (CurrentDate == DateTime.MinValue) {
+                    return DateTime.MinValue;
+                }
+
                 var firstDayOfTheMonth = new DateTime(CurrentDate.Year, CurrentDate.Month, 1);
+
+                if (firstDayOfTheMonth == DateTime.MinValue)
+                {
+                    return DateTime.MinValue;
+                }
 
                 int diff = (7 + (firstDayOfTheMonth.DayOfWeek - Culture.DateTimeFormat.FirstDayOfWeek)) % 7;
                 return firstDayOfTheMonth.AddDays(-1 * diff).Date;
@@ -705,6 +702,13 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<TValue> ValueChanged { get; set; }
 
+        /// <summary>
+        /// Gets or sets the footer template.
+        /// </summary>
+        /// <value>The footer template.</value>
+        [Parameter]
+        public RenderFragment FooterTemplate { get; set; }
+
         string contentStyle = "display:none;";
 
         private string getStyle()
@@ -805,6 +809,11 @@ namespace Radzen.Blazor
         private string getOpenPopup()
         {
             return !Disabled && !ReadOnly && !Inline ? $"Radzen.togglePopup(this.parentNode, '{PopupID}')" : "";
+        }
+
+        private string getOpenPopupForInput()
+        {
+            return !Disabled && !ReadOnly && !Inline && !AllowInput ? $"Radzen.togglePopup(this.parentNode, '{PopupID}')" : "";
         }
 
         /// <summary>
