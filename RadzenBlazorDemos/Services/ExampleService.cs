@@ -1,4 +1,5 @@
 using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -192,6 +193,14 @@ namespace RadzenBlazorDemos
                             Path = "datagrid-advanced-filter",
                             Title = "Blazor DataGrid Simple filter mode",
                             Tags = new [] { "filter", "advanced", "grid", "datagrid", "table"}
+                        },
+                        new Example
+                        {
+                            New = true,
+                            Name = "Enum filtering",
+                            Path = "datagrid-enum-filter",
+                            Title = "Blazor DataGrid enum filtering",
+                            Tags = new [] { "filter", "enum", "grid", "datagrid", "table"}
                         },
                         new Example
                         {
@@ -471,7 +480,7 @@ namespace RadzenBlazorDemos
         new Example()
         {
             Name = "Images",
-            Icon = "&#xe3d3", 
+            Icon = "&#xe3d3",
             Children = new [] {
                 new Example()
                 {
@@ -504,6 +513,14 @@ namespace RadzenBlazorDemos
                     Path = "accordion",
                     Icon = "&#xe8ee",
                     Tags = new [] { "panel", "container" }
+                },
+                new Example()
+                {
+                    Name = "BreadCrumb",
+                    New = true,
+                    Path = "breadcrumb",
+                    Icon = "&#xeac9",
+                    Tags = new [] { "breadcrumb", "navigation", "menu" }
                 },
                 new Example()
                 {
@@ -566,7 +583,7 @@ namespace RadzenBlazorDemos
                     Icon = "&#xe851",
                     Tags = new [] { "navigation", "dropdown", "menu" }
                 },
-				new Example()
+                new Example()
                 {
                     Name = "Splitter",
                     Path = "splitter",
@@ -586,8 +603,7 @@ namespace RadzenBlazorDemos
                     Path = "tabs",
                     Icon = "&#xe8d8",
                     Tags = new [] { "tabstrip", "tabview", "container" }
-                },
-                
+                }
             }
         },
         new Example()
@@ -949,7 +965,7 @@ namespace RadzenBlazorDemos
                     Icon = "&#xe5ca",
                     Tags = new [] { "validator", "validation", "required"}
                 },
-                
+
             }
         },
 

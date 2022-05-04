@@ -375,6 +375,30 @@ namespace Radzen.Blazor
             StateHasChanged();
         }
 
+        internal void UpdatePickableColumn(RadzenDataGridColumn<TItem> column, bool visible)
+        {
+            if (selectedColumns == null)
+                return;
+
+            var columnsList = (IList<RadzenDataGridColumn<TItem>>)selectedColumns;
+            if (visible)
+            {
+                if (!columnsList.Contains(column))
+                {
+                    columnsList.Add(column);
+                }
+            }
+            else 
+            {
+                if (columnsList.Contains(column))
+                {
+                    columnsList.Remove(column);
+                }
+            }
+
+            selectedColumns = columnsList;
+        }
+
         internal void RemoveColumn(RadzenDataGridColumn<TItem> column)
         {
             if (columns.Contains(column))
@@ -697,6 +721,13 @@ namespace Radzen.Blazor
         /// <value>The filter text.</value>
         [Parameter]
         public string FilterText { get; set; } = "Filter";
+
+        /// <summary>
+        /// Gets or sets the enum filter select text.
+        /// </summary>
+        /// <value>The enum filter select text.</value>
+        [Parameter]
+        public string EnumFilterSelectText { get; set; } = "Select...";
 
         /// <summary>
         /// Gets or sets the and operator text.
@@ -1959,6 +1990,7 @@ namespace Radzen.Blazor
             }
         }
 
+        List<RadzenDataGridColumn<TItem>> groupedColumns = new List<RadzenDataGridColumn<TItem>>();
         /// <summary>
         /// Gets or sets the group descriptors.
         /// </summary>
@@ -1975,10 +2007,14 @@ namespace Radzen.Blazor
                         if (args.Action == NotifyCollectionChangedAction.Add)
                         {
                             var column = columns.Where(c => c.GetGroupProperty() == ((GroupDescriptor)args.NewItems[0]).Property).FirstOrDefault();
-                            
+
                             if (HideGroupedColumn)
                             {
                                 column.SetVisible(false);
+                                if (!groupedColumns.Contains(column))
+                                {
+                                    groupedColumns.Add(column);
+                                }
                             }
                         }
                         else if (args.Action == NotifyCollectionChangedAction.Remove)
@@ -1988,6 +2024,20 @@ namespace Radzen.Blazor
                             if (HideGroupedColumn)
                             {
                                 column.SetVisible(true);
+                                if (groupedColumns.Contains(column))
+                                {
+                                    groupedColumns.Remove(column);
+                                }
+                            }
+                        }
+                        else if (args.Action == NotifyCollectionChangedAction.Reset)
+                        {
+                            foreach (var column in groupedColumns)
+                            {
+                                if (HideGroupedColumn)
+                                {
+                                    column.SetVisible(true);
+                                }
                             }
                         }
                     };
@@ -2014,7 +2064,7 @@ namespace Radzen.Blazor
                     var descriptor = Groups.Where(d => d.Property == column.GetGroupProperty()).FirstOrDefault();
                     if (descriptor == null)
                     {
-                        descriptor = new GroupDescriptor() { Property = column.GetGroupProperty(), Title = column.Title, SortOrder = column.GetSortOrder()  };
+                        descriptor = new GroupDescriptor() { Property = column.GetGroupProperty(), Title = column.Title, SortOrder = column.GetSortOrder() ?? SortOrder.Ascending  };
                         Groups.Add(descriptor);
                         _groupedPagedView = null;
 

@@ -285,11 +285,11 @@ namespace Radzen
         /// <summary>
         /// Gets or sets the number of bytes that have been uploaded.
         /// </summary>
-        public int Loaded { get; set; }
+        public long Loaded { get; set; }
         /// <summary>
         /// Gets the total number of bytes that need to be uploaded.
         /// </summary>
-        public int Total { get; set; }
+        public long Total { get; set; }
         /// <summary>
         /// Gets the progress as a percentage value (from <c>0</c> to <c>100</c>).
         /// </summary>
@@ -325,10 +325,11 @@ namespace Radzen
         /// Gets the name of the selected file.
         /// </summary>
         public string Name { get; set; }
+
         /// <summary>
         /// Gets the size (in bytes) of the selected file.
         /// </summary>
-        public int Size { get; set; }
+        public long Size { get; set; }
     }
 
     /// <summary>
@@ -1479,6 +1480,11 @@ namespace Radzen
                 return Guid.Parse((string)value);
             }
 
+            if (Nullable.GetUnderlyingType(type)?.IsEnum == true)
+            {
+                return Enum.Parse(Nullable.GetUnderlyingType(type), value.ToString());
+            }
+            
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             {
                 Type itemType = type.GetGenericArguments()[0];
@@ -1698,6 +1704,31 @@ namespace Radzen
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// Determines whether the specified type is an enum.
+        /// </summary>
+        /// <param name="source">The type.</param>
+        /// <returns><c>true</c> if the specified source is an enum; otherwise, <c>false</c>.</returns>
+        public static bool IsEnum(Type source)
+        {
+            if (source == null)
+                return false;
+
+            return source.IsEnum;
+        }
+
+        /// <summary> 
+        /// Determines whether the specified type is a Nullable enum. 
+        /// </summary> 
+        /// <param name="source">The type.</param> 
+        /// <returns><c>true</c> if the specified source is an enum; otherwise, <c>false</c>.</returns> 
+        public static bool IsNullableEnum(Type source)
+        {
+            if (source == null) return false;
+            Type u = Nullable.GetUnderlyingType(source);
+            return (u != null) && u.IsEnum;
         }
 
         /// <summary>
