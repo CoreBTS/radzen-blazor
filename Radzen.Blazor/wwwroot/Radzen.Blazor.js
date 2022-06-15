@@ -834,6 +834,19 @@ window.Radzen = {
       Radzen.openPopup(parent, id, syncWidth, null, null, null, instance, callback);
     }
   },
+  ensurePopup: function (parent, id, syncWidth, instance, callback) {
+    var popup = document.getElementById(id);
+    if (!popup) return;
+    if (popup.style.display != 'block') {
+      Radzen.openPopup(parent, id, syncWidth, null, null, null, instance, callback);
+    }
+  },
+  ensurePopupAndSelectListItem: function (parent, popupId, listId, isDown, newIndex) {
+    Radzen.ensurePopup(parent, popupId, true);
+    Radzen.focusListItem(null, listId, isDown, newIndex);
+    Radzen.selectListItem(parent, listId, newIndex);
+    Radzen.repositionPopup(parent, popupId);
+  },
   destroyPopup: function (id) {
     var popup = document.getElementById(id);
     if (popup) {

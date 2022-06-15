@@ -19,6 +19,16 @@
     </div>
     <div class="col-md-6 col-lg-4 col-xl-3 p-3">
         <RadzenCard>
+            <h4 class="mb-4">Binding to complex object collection</h4>
+            <RadzenDropDown AllowClear="true" TValue="string" Class="w-100" 
+                            Data=@(customers.Select(c => new { Id = c.CustomerID, CompanyName = c.CompanyName }).Distinct())
+                            TextProperty="CompanyName"
+                            ValueProperty="Id"
+                            Change=@(args => OnChange(args, "DropDown")) />
+        </RadzenCard>
+    </div>
+    <div class="col-md-6 col-lg-4 col-xl-3 p-3">
+        <RadzenCard>
             <h4 class="mb-4">Disabled DropDown</h4>
             <div style="display: flex; align-items: center">
                 <RadzenDropDown Disabled=@disabled AllowClear="true" TValue="string" Class="w-100" 
