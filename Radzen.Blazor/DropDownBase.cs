@@ -382,6 +382,21 @@ namespace Radzen
         [Parameter]
         public int FilterDelay { get; set; } = 500;
 
+
+        /// <summary>
+        /// Gets or sets the delay for processing KeyPress events when filtering is disabled.
+        /// </summary>
+        /// <value>The KeyPress delay.</value>
+        [Parameter]
+        public int KeyPressDelay { get; set; } = 200;
+
+        /// <summary>
+        /// Gets or sets the delay for clearing previously typed characters when filtering is disabled.
+        /// </summary>
+        /// <value>The clear delay.</value>
+        [Parameter]
+        public int ClearKeysDelay { get; set; } = 500;
+
         /// <summary>
         /// The search
         /// </summary>
@@ -491,8 +506,8 @@ namespace Radzen
                 if (!ignoredLastKeys.Any(s => string.Equals(s, args.Key, StringComparison.OrdinalIgnoreCase)))
                 {
                     lastKey += args.Key;
-                    Debounce(DebounceKeyPress, 100);
-                    lastKeyDebouncer.Debounce(200, ClearLastKey);
+                    Debounce(DebounceKeyPress, KeyPressDelay);
+                    lastKeyDebouncer.Debounce(ClearKeysDelay, ClearLastKey);
                 }
             }
         }
