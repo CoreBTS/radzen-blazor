@@ -1,0 +1,36 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ "build-and-package" ]
+  pull_request:
+    branches: [ "build-and-package" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2.1.0
+      with:
+        dotnet-version: 6.0.x
+    - name: Assign Version
+      run: |
+        versionLine=`grep -E '<Version>.*</Version>' $GITHUB_WORKSPACE/Radzen.Blazor/Radzen.Blazor.csproj`
+        echo "Version Line: $versionLine"
+
+        projectRevision=`echo $versionLine | grep -e '[.0-9]*' --only-matching`
+        echo "Project Version: $projectRevision"
+
+        dateString=`date "+%Y%m%d"`
+        echo "$projectRevision-ci-$dateString$GITHUB_RUN_NUMBER" >> $PACKAGE_VERSION
+
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore -c Release -p:Version=$PACKAGE_VERSION
+    - name: Package
+      run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION
