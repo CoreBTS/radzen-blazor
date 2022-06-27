@@ -19,6 +19,8 @@ jobs:
         dotnet-version: 6.0.x
     - name: Assign Version
       run: |
+        echo '::echo::on'
+        
         versionLine=`grep -E '<Version>.*</Version>' $GITHUB_WORKSPACE/Radzen.Blazor/Radzen.Blazor.csproj`
         echo "Version Line: $versionLine"
 
@@ -29,8 +31,11 @@ jobs:
         echo "PACKAGE_VERSION=$projectRevision-ci-$dateString$GITHUB_RUN_NUMBER" >> $GITHUB_ENV
 
     - name: Restore dependencies
+      working-directory: ./Radzen.Blazor
       run: dotnet restore
     - name: Build
+      working-directory: ./Radzen.Blazor
       run: dotnet build --no-restore -c Release -p:Version=$PACKAGE_VERSION
     - name: Package
+      working-directory: ./Radzen.Blazor
       run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION
