@@ -8,8 +8,9 @@ on:
 
 jobs:
   build:
-    permissions:
-      packages: write
+#    permissions:
+#      packages: write
+#      repo: write
 
     runs-on: ubuntu-latest
 
