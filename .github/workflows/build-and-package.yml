@@ -44,6 +44,6 @@ jobs:
       run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION
     - name: Setup NuGet Package Source
       working-directory: ./Radzen.Blazor
-      run: dotnet nuget add source --username ${{ github.actor }} --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+      run: dotnet nuget add source --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
     - name: Publish Package
-      run: dotnet nuget push "packages/Radzen.Blazor.$PACKAGE_VERSION.nupkg" --source "github"
+      run: dotnet nuget push "packages/Radzen.Blazor.$PACKAGE_VERSION.nupkg" --source "github" --api-key ${{ secrets.GITHUB_TOKEN }}
