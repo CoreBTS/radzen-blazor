@@ -20,6 +20,10 @@ jobs:
       uses: actions/setup-dotnet@v2.1.0
       with:
         dotnet-version: 6.0.x
+        source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+      env:
+        NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}        
+          
     - name: Assign Version
       run: |
         echo '::echo::on'
@@ -43,8 +47,8 @@ jobs:
     - name: Package
       working-directory: ./Radzen.Blazor
       run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION
-    - name: Setup NuGet Package Source
-      working-directory: ./Radzen.Blazor
-      run: dotnet nuget add source --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+    # - name: Setup NuGet Package Source
+    #   working-directory: ./Radzen.Blazor
+    #   run: dotnet nuget add source --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
     - name: Publish Package
-      run: dotnet nuget push "packages/Radzen.Blazor.$PACKAGE_VERSION.nupkg" --source "github" --api-key ${{ secrets.GITHUB_TOKEN }}
+      run: dotnet nuget push "packages/Radzen.Blazor.$PACKAGE_VERSION.nupkg" --skip-duplicate --no-symbols
