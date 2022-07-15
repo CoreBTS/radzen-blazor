@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Radzen.Blazor.Rendering;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Radzen.Blazor
 {
@@ -111,6 +113,55 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
+        /// Called on file change.
+        /// </summary>
+        /// <param name="files">The file.</param>
+        [JSInvokable("RadzenUpload.OnChange")]
+        public async System.Threading.Tasks.Task OnChange(IEnumerable<PreviewFileInfo> files)
+        {
+            var file = files.FirstOrDefault();
+            size = $"{file.Size}";
+            name = file.Name;
+
+            await OnChange();
+        }
+
+        string _Id;
+        string Id
+        {
+            get
+            {
+                if (_Id == null)
+                {
+                    _Id = $"{Guid.NewGuid()}";
+                }
+
+                return _Id;
+            }
+        }
+
+        private bool visibleChanged = false;
+        private bool firstRender = true;
+
+        /// <inheritdoc />
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            await base.OnAfterRenderAsync(firstRender);
+
+            this.firstRender = firstRender;
+
+            if (firstRender || visibleChanged)
+            {
+                visibleChanged = false;
+
+                if (Visible)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.uploads", Reference, Id);
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the error callback.
         /// </summary>
         /// <value>The error callback.</value>
@@ -151,6 +202,8 @@ namespace Radzen.Blazor
         async System.Threading.Tasks.Task Remove(EventArgs args)
         {
             Value = default(TValue);
+
+            await JSRuntime.InvokeVoidAsync("Radzen.removeFileFromFileInput", fileUpload);
 
             await ValueChanged.InvokeAsync(Value);
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }

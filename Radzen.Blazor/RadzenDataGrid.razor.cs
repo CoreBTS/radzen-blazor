@@ -53,7 +53,6 @@ namespace Radzen.Blazor
         private async ValueTask<Microsoft.AspNetCore.Components.Web.Virtualization.ItemsProviderResult<TItem>> LoadItems(Microsoft.AspNetCore.Components.Web.Virtualization.ItemsProviderRequest request)
         {
             var view = AllowPaging ? PagedView : View;
-            var totalItemsCount = LoadData.HasDelegate ? Count : view.Count();
             var top = request.Count;
 
             if(top <= 0)
@@ -62,6 +61,8 @@ namespace Radzen.Blazor
             }
 
             await InvokeLoadData(request.StartIndex, top);
+            
+            var totalItemsCount = LoadData.HasDelegate ? Count : view.Count();
 
             virtualDataItems = (LoadData.HasDelegate ? Data : itemToInsert != null ? (new[] { itemToInsert }).Concat(view.Skip(request.StartIndex).Take(top)) : view.Skip(request.StartIndex).Take(top)).ToList();
 
@@ -491,7 +492,21 @@ namespace Radzen.Blazor
                     builder.AddAttribute(4, "oninput", EventCallback.Factory.Create<ChangeEventArgs>(this, args =>
                     {
                         var value = $"{args.Value}";
-                        column.SetFilterValue(!string.IsNullOrWhiteSpace(value) ? Convert.ChangeType(value, Nullable.GetUnderlyingType(type)) : null, isFirst);
+                        object filterValue = null;
+
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            try
+                            {
+                                filterValue = Convert.ChangeType(value, Nullable.GetUnderlyingType(type));
+                            }
+                            catch (Exception)
+                            {
+                                filterValue = null;
+                            }
+                        }
+
+                        column.SetFilterValue(filterValue, isFirst);
                     }));
                 }
                 else if (FilterMode == FilterMode.SimpleWithMenu)
@@ -510,7 +525,7 @@ namespace Radzen.Blazor
         /// <param name="column">The column.</param>
         /// <param name="force">if set to <c>true</c> [force].</param>
         /// <param name="isFirst">if set to <c>true</c> [is first].</param>
-        protected void OnFilter(ChangeEventArgs args, RadzenDataGridColumn<TItem> column, bool force = false, bool isFirst = true)
+        protected async Task OnFilter(ChangeEventArgs args, RadzenDataGridColumn<TItem> column, bool force = false, bool isFirst = true)
         {
             string property = column.GetFilterProperty();
             if (AllowFiltering && column.Filterable)
@@ -521,7 +536,7 @@ namespace Radzen.Blazor
                     skip = 0;
                     CurrentPage = 0;
 
-                    Filter.InvokeAsync(new DataGridColumnFilterEventArgs<TItem>()
+                    await Filter.InvokeAsync(new DataGridColumnFilterEventArgs<TItem>()
                     {
                         Column = column,
                         FilterValue = column.GetFilterValue(),
@@ -536,7 +551,12 @@ namespace Radzen.Blazor
                         Data = null;
                     }
 
-                    InvokeAsync(Reload);
+                    await InvokeAsync(Reload);
+
+                    if (IsVirtualizationAllowed())
+                    {
+                        StateHasChanged();
+                    }
                 }
             }
         }
@@ -593,6 +613,13 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<DataGridColumnFilterEventArgs<TItem>> Filter { get; set; }
 
+        /// <summary>
+        /// Gets or sets the column filter cleared callback.
+        /// </summary>
+        /// <value>The column filter callback.</value>
+        [Parameter]
+        public EventCallback<DataGridColumnFilterEventArgs<TItem>> FilterCleared { get; set; }
+
         internal async Task ClearFilter(RadzenDataGridColumn<TItem> column, bool closePopup = false)
         {
             if (closePopup)
@@ -605,7 +632,7 @@ namespace Radzen.Blazor
             skip = 0;
             CurrentPage = 0;
 
-            await Filter.InvokeAsync(new DataGridColumnFilterEventArgs<TItem>() 
+            await FilterCleared.InvokeAsync(new DataGridColumnFilterEventArgs<TItem>() 
             { 
                 Column = column, 
                 FilterValue = column.GetFilterValue(),
@@ -841,6 +868,20 @@ namespace Radzen.Blazor
         /// <value>The null text.</value>
         [Parameter]
         public string IsNullText { get; set; } = "Is null";
+        
+        /// <summary>
+        /// Gets or sets the is empty text.
+        /// </summary>
+        /// <value>The empty text.</value>
+        [Parameter]
+        public string IsEmptyText { get; set; } = "Is empty";
+        
+        /// <summary>
+        /// Gets or sets the is not empty text.
+        /// </summary>
+        /// <value>The not empty text.</value>
+        [Parameter]
+        public string IsNotEmptyText { get; set; } = "Is not empty";
 
         internal class NumericFilterEventCallback
         {
@@ -1340,7 +1381,7 @@ namespace Radzen.Blazor
 
             if (resetColumnState)
             {
-                allColumns.ToList().ForEach(c => { c.SetFilterValue(null); c.SetFilterValue(null, false); c.SetSecondFilterOperator(FilterOperator.Equals); });
+                allColumns.ToList().ForEach(c => c.ClearFilters());
                 allColumns.ToList().ForEach(c => { c.ResetSortOrder(); });
                 sorts.Clear();
            }
@@ -1395,7 +1436,6 @@ namespace Radzen.Blazor
                     if(virtualize != null)
                     {
                         await virtualize.RefreshDataAsync();
-                        await virtualize.RefreshDataAsync();
                     }
 
                     if(groupVirtualize != null)
@@ -1421,15 +1461,17 @@ namespace Radzen.Blazor
             if (LoadData.HasDelegate)
             {
                 var filters = allColumns.ToList().Where(c => c.Filterable && c.GetVisible() && (c.GetFilterValue() != null
-                        || c.GetFilterOperator() == FilterOperator.IsNotNull || c.GetFilterOperator() == FilterOperator.IsNull)).Select(c => new FilterDescriptor()
-                        {
+                        || c.GetFilterOperator() == FilterOperator.IsNotNull || c.GetFilterOperator() == FilterOperator.IsNull
+                        || c.GetFilterOperator() == FilterOperator.IsEmpty | c.GetFilterOperator() == FilterOperator.IsNotEmpty))
+                    .Select(c => new FilterDescriptor()
+                    {
                             Property = c.GetFilterProperty(),
                             FilterValue = c.GetFilterValue(),
                             FilterOperator = c.GetFilterOperator(),
                             SecondFilterValue = c.GetSecondFilterValue(),
                             SecondFilterOperator = c.GetSecondFilterOperator(),
                             LogicalFilterOperator = c.GetLogicalFilterOperator()
-                        });
+                    });
 
                 await LoadData.InvokeAsync(new Radzen.LoadDataArgs()
                 {

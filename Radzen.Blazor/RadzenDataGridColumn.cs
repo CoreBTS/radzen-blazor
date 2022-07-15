@@ -100,10 +100,10 @@ namespace Radzen.Blazor
             {
                 Grid.AddColumn(this);
 
-                if (!string.IsNullOrEmpty(FilterProperty) || Type == null)
-                {
-                    var property = GetFilterProperty();
+                var property = GetFilterProperty();
 
+                if (!string.IsNullOrEmpty(property) && Type == null)
+                {
                     if (!string.IsNullOrEmpty(property))
                     {
                         _filterPropertyType = PropertyAccess.GetPropertyType(typeof(TItem), property);
@@ -646,37 +646,58 @@ namespace Radzen.Blazor
             await base.SetParametersAsync(parameters);
         }
 
-        internal SortOrder? GetSortOrder()
+        /// <summary>
+        /// Get column sort order.
+        /// </summary>
+        public SortOrder? GetSortOrder()
         {
             return sortOrder.Any() ? sortOrder.FirstOrDefault() : SortOrder;
         }
 
-        internal object GetFilterValue()
+        /// <summary>
+        /// Get column filter value.
+        /// </summary>
+        public object GetFilterValue()
         {
             return filterValue ?? FilterValue;
         }
 
-        internal FilterOperator GetFilterOperator()
+        /// <summary>
+        /// Get column filter operator.
+        /// </summary>
+        public FilterOperator GetFilterOperator()
         {
             return filterOperator ?? FilterOperator;
         }
 
-        internal object GetSecondFilterValue()
+        /// <summary>
+        /// Get column second filter value.
+        /// </summary>
+        public object GetSecondFilterValue()
         {
             return secondFilterValue ?? SecondFilterValue;
         }
 
-        internal FilterOperator GetSecondFilterOperator()
+        /// <summary>
+        /// Get column second filter operator.
+        /// </summary>
+        public FilterOperator GetSecondFilterOperator()
         {
             return secondFilterOperator ?? SecondFilterOperator;
         }
 
-        internal LogicalFilterOperator GetLogicalFilterOperator()
+        /// <summary>
+        /// Get column logical filter operator.
+        /// </summary>
+        public LogicalFilterOperator GetLogicalFilterOperator()
         {
             return logicalFilterOperator ?? LogicalFilterOperator;
         }
 
-        internal void SetFilterValue(object value, bool isFirst = true)
+        /// <summary>
+        /// Set column filter value.
+        /// </summary>
+        public void SetFilterValue(object value, bool isFirst = true)
         {
             if ((FilterPropertyType == typeof(DateTimeOffset) || FilterPropertyType == typeof(DateTimeOffset?)) && value != null && value is DateTime?)
             {
@@ -696,10 +717,16 @@ namespace Radzen.Blazor
 
         internal bool CanSetFilterValue()
         { 
-            return GetFilterOperator() == FilterOperator.IsNull || GetFilterOperator() == FilterOperator.IsNotNull;
+            return GetFilterOperator() == FilterOperator.IsNull 
+                    || GetFilterOperator() == FilterOperator.IsNotNull 
+                    ||  GetFilterOperator() == FilterOperator.IsEmpty 
+                    || GetFilterOperator() == FilterOperator.IsNotEmpty;
         }
 
-        internal void ClearFilters()
+        /// <summary>
+        /// Sets to default column filter values and operators.
+        /// </summary>
+        public void ClearFilters()
         {
             SetFilterValue(null);
             SetFilterValue(null, false);
@@ -708,7 +735,7 @@ namespace Radzen.Blazor
 
             FilterValue = null;
             SecondFilterValue = null;
-            FilterOperator = default(FilterOperator);
+            FilterOperator = typeof(System.Collections.IEnumerable).IsAssignableFrom(FilterPropertyType) ? FilterOperator.Contains : default(FilterOperator);
             SecondFilterOperator = default(FilterOperator);
             LogicalFilterOperator = default(LogicalFilterOperator);
         }
@@ -727,17 +754,36 @@ namespace Radzen.Blazor
         [Parameter]
         public FilterOperator SecondFilterOperator { get; set; }
 
-        internal void SetFilterOperator(FilterOperator? value)
+        /// <summary>
+        /// Set column filter operator.
+        /// </summary>
+        public void SetFilterOperator(FilterOperator? value)
         {
+            if (value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty || value == FilterOperator.IsNull || value == FilterOperator.IsNotNull)
+            {
+                filterValue = value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty ? string.Empty : null;
+            }
+
             filterOperator = value;
         }
 
-        internal void SetSecondFilterOperator(FilterOperator? value)
+        /// <summary>
+        /// Set column second filter operator.
+        /// </summary>
+        public void SetSecondFilterOperator(FilterOperator? value)
         {
+            if (value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty || value == FilterOperator.IsNull || value == FilterOperator.IsNotNull)
+            {
+                secondFilterValue = value == FilterOperator.IsEmpty || value == FilterOperator.IsNotEmpty ? string.Empty : null;
+            }
+
             secondFilterOperator = value;
         }
 
-        internal void SetLogicalFilterOperator(LogicalFilterOperator value)
+        /// <summary>
+        /// Set column second logical operator.
+        /// </summary>
+        public void SetLogicalFilterOperator(LogicalFilterOperator value)
         {
             LogicalFilterOperator = value;
         }
@@ -753,17 +799,26 @@ namespace Radzen.Blazor
 
         string runtimeWidth;
 
-        internal void SetWidth(string value)
+        /// <summary>
+        /// Set column width.
+        /// </summary>
+        public void SetWidth(string value)
         {
             runtimeWidth = value;
         }
 
-        internal string GetWidth()
+        /// <summary>
+        /// Get column width.
+        /// </summary>
+        public string GetWidth()
         {
             return !string.IsNullOrEmpty(runtimeWidth) ? runtimeWidth : Width;
         }
 
-        internal IEnumerable<FilterOperator> GetFilterOperators()
+        /// <summary>
+        /// Get possible column filter operators.
+        /// </summary>
+        public IEnumerable<FilterOperator> GetFilterOperators()
         {
             if (PropertyAccess.IsEnum(FilterPropertyType))
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals };
@@ -772,10 +827,12 @@ namespace Radzen.Blazor
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.IsNull, FilterOperator.IsNotNull };
 
             return Enum.GetValues(typeof(FilterOperator)).Cast<FilterOperator>().Where(o => {
-                var isStringOperator = o == FilterOperator.Contains ||  o == FilterOperator.DoesNotContain || o == FilterOperator.StartsWith || o == FilterOperator.EndsWith;
+                var isStringOperator = o == FilterOperator.Contains ||  o == FilterOperator.DoesNotContain 
+                    || o == FilterOperator.StartsWith || o == FilterOperator.EndsWith || o == FilterOperator.IsEmpty || o == FilterOperator.IsNotEmpty;
                 return FilterPropertyType == typeof(string) ? isStringOperator 
-                    || o == FilterOperator.Equals || o == FilterOperator.NotEquals || o == FilterOperator.IsNull || o == FilterOperator.IsNotNull
-                        : !isStringOperator;
+                      || o == FilterOperator.Equals || o == FilterOperator.NotEquals 
+                      || o == FilterOperator.IsNull || o == FilterOperator.IsNotNull
+                    : !isStringOperator;
             });
         }
 
@@ -805,8 +862,12 @@ namespace Radzen.Blazor
                     return Grid?.NotEqualsText;
                 case FilterOperator.IsNull:
                     return Grid?.IsNullText;
+                case FilterOperator.IsEmpty:
+                    return Grid?.IsEmptyText;
                 case FilterOperator.IsNotNull:
                     return Grid?.IsNotNullText;
+                case FilterOperator.IsNotEmpty:
+                    return Grid?.IsNotEmptyText;
                 default:
                     return $"{filterOperator}";
             }
@@ -841,6 +902,10 @@ namespace Radzen.Blazor
                     return "∅";
                 case FilterOperator.IsNotNull:
                     return "!∅";
+                case FilterOperator.IsEmpty:
+                    return "= ''";
+                case FilterOperator.IsNotEmpty:
+                    return "≠ ''";
                 default:
                     return $"{filterOperator}";
             }

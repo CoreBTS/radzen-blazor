@@ -29,6 +29,22 @@ namespace Radzen.Blazor
             return GetClassList("rz-spinner").ToString();
         }
 
+        private string getOnInput()
+        {
+            object minArg = Min;
+            object maxArg = Max;
+
+            return Min != null || Max != null ? $@"Radzen.numericOnInput(event, {minArg ?? "null"}, {maxArg ?? "null"})" : "";
+        }
+
+        private string getOnPaste()
+        {
+            object minArg = Min;
+            object maxArg = Max;
+
+            return Min != null || Max != null ? $@"Radzen.numericOnPaste(event, {minArg ?? "null"}, {maxArg ?? "null"})" : "";
+        }
+
         async System.Threading.Tasks.Task UpdateValueWithStep(bool stepUp)
         {
             if (Disabled || ReadOnly)
@@ -187,7 +203,7 @@ namespace Radzen.Blazor
             {
                 valueStr = value.ToString();
             }
-            return new string(valueStr.Where(c => char.IsDigit(c) || char.IsPunctuation(c)).ToArray());
+            return new string(valueStr.Where(c => char.IsDigit(c) || char.IsPunctuation(c)).ToArray()).Replace("%", "");
         }
 
         private async System.Threading.Tasks.Task InternalValueChanged(object value)

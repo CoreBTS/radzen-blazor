@@ -201,7 +201,7 @@ namespace Radzen.Blazor
             }
         }
 
-        List<IRadzenFormComponent> components = new List<IRadzenFormComponent>();
+        readonly List<IRadzenFormComponent> components = new List<IRadzenFormComponent>();
 
         /// <inheritdoc />
         public void AddComponent(IRadzenFormComponent component)
@@ -228,6 +228,7 @@ namespace Radzen.Blazor
         /// Gets or sets the edit context.
         /// </summary>
         /// <value>The edit context.</value>
+        [Parameter]
         public EditContext EditContext { get; set; }
 
         /// <inheritdoc />
