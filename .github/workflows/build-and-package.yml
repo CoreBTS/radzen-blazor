@@ -46,7 +46,7 @@ jobs:
       run: dotnet build --no-restore -c Release -p:Version=$PACKAGE_VERSION
     - name: Package
       working-directory: ./Radzen.Blazor
-      run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION
+      run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION -p:RepositoryUrl=https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
     # - name: Setup NuGet Package Source
     #   working-directory: ./Radzen.Blazor
     #   run: dotnet nuget add source --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
