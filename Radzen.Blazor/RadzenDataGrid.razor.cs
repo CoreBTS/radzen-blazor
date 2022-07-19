@@ -132,7 +132,11 @@ namespace Radzen.Blazor
                                 b.AddAttribute(8, "InEditMode", IsRowInEditMode(context));
                                 b.AddAttribute(9, "Index", virtualDataItems.IndexOf(context));
 
-                                if (editContexts.ContainsKey(context))
+                                if (UseParentEditContext && EditContext != null)
+                                {
+                                    b.AddAttribute(10, nameof(RadzenDataGridRow<TItem>.EditContext), EditContext);
+                                }
+                                else if (editContexts.ContainsKey(context))
                                 {
                                     b.AddAttribute(10, nameof(RadzenDataGridRow<TItem>.EditContext), editContexts[context]);
                                 }
@@ -185,7 +189,11 @@ namespace Radzen.Blazor
                     builder.AddAttribute(5, "Item", item);
                     builder.AddAttribute(6, "InEditMode", IsRowInEditMode(item));
 
-                    if (editContexts.ContainsKey(item))
+                    if (UseParentEditContext && EditContext != null)
+                    {
+                        builder.AddAttribute(7, nameof(RadzenDataGridRow<TItem>.EditContext), EditContext);
+                    }
+                    else if (editContexts.ContainsKey(item))
                     {
                         builder.AddAttribute(7, nameof(RadzenDataGridRow<TItem>.EditContext), editContexts[item]);
                     }
@@ -1354,6 +1362,12 @@ namespace Radzen.Blazor
         [Parameter]
         public Action<DataGridRenderEventArgs<TItem>> Render { get; set; }
 
+        [CascadingParameter]
+        public EditContext EditContext { get; set; } = null;
+
+        [Parameter]
+        public bool UseParentEditContext { get; set; } = false;
+
         /// <summary>
         /// Called when data is changed.
         /// </summary>
@@ -1838,7 +1852,7 @@ namespace Radzen.Blazor
                 if (itemToCancel != null)
                 {
                     editedItems.Remove(itemToCancel);
-                    editContexts.Remove(itemToCancel);
+                    if (!UseParentEditContext) { editContexts.Remove(itemToCancel); }
                 }
             }
 
@@ -1846,8 +1860,11 @@ namespace Radzen.Blazor
             {
                 editedItems.Add(item, true);
 
-                var editContext = new EditContext(item);
-                editContexts.Add(item, editContext);
+                if (!UseParentEditContext)
+                {
+                    var editContext = new EditContext(item);
+                    editContexts.Add(item, editContext);
+                }
 
                 await RowEdit.InvokeAsync(item);
 
@@ -1863,12 +1880,12 @@ namespace Radzen.Blazor
         {
             if (editedItems.Keys.Contains(item))
             {
-                var editContext = editContexts[item];
+                var editContext = UseParentEditContext ? EditContext : editContexts[item];
 
                 if (editContext.Validate())
                 {
                     editedItems.Remove(item);
-                    editContexts.Remove(item);
+                    if (!UseParentEditContext) { editContexts.Remove(item); }
 
                     if (object.Equals(itemToInsert, item))
                     {
@@ -1925,7 +1942,7 @@ namespace Radzen.Blazor
                 if (editedItems.Keys.Contains(item))
                 {
                     editedItems.Remove(item);
-                    editContexts.Remove(item);
+                    if (!UseParentEditContext) { editContexts.Remove(item); }
 
                     StateHasChanged();
                 }
