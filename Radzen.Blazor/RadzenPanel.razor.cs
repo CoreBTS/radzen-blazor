@@ -95,6 +95,13 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback Collapse { get; set; }
 
+        /// <summary>
+        /// Gets or sets the tab index for the panel / expansion button
+        /// </summary>
+        /// <value>The tab index</value>
+        [Parameter]
+        public int TabIndex { get; set; }
+
         string contentStyle = "display: block;";
         string summaryContentStyle = "display: none";
 
