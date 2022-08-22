@@ -14,12 +14,15 @@ namespace Radzen.Blazor
         /// <summary>
         /// Gets enum description.
         /// </summary>
-        public static string GetDisplayDescription(this Enum enumValue)
+        public static string GetDisplayDescription(this Enum enumValue, bool fallbackToName = false)
         {
             var enumValueAsString = enumValue.ToString();
             var val = enumValue.GetType().GetMember(enumValueAsString).FirstOrDefault();
 
-            return val?.GetCustomAttribute<DisplayAttribute>()?.GetDescription() ?? enumValueAsString;
+            var attr = val?.GetCustomAttribute<DisplayAttribute>();
+            return fallbackToName 
+                 ? attr?.GetDescription() ?? attr?.GetName() ?? enumValueAsString
+                 : attr?.GetDescription() ?? enumValueAsString;
         }
 
         /// <summary>
@@ -27,7 +30,14 @@ namespace Radzen.Blazor
         /// </summary>
         public static IEnumerable<object> EnumAsKeyValuePair(Type enumType)
         {
-            return Enum.GetValues(enumType).Cast<Enum>().Distinct().Select(val => new { Value = Convert.ToInt32(val), Text = val.GetDisplayDescription() });
+            return Enum.GetValues(enumType)
+                       .Cast<Enum>()
+                       .Distinct()
+                       .Select(val => new 
+                       { 
+                          Value = Convert.ToInt32(val), 
+                          Text = val.GetDisplayDescription(true)
+                       });
         }
 
     }
