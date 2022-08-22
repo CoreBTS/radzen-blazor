@@ -413,7 +413,6 @@ window.Radzen = {
   },
   focusListItem: function (input, ul, isDown, startIndex) {
     if (!input || !ul) return;
-
     var childNodes = ul.getElementsByTagName('LI');
 
     if (!childNodes || childNodes.length == 0) return;
@@ -423,15 +422,18 @@ window.Radzen = {
     }
 
     ul.nextSelectedIndex = startIndex;
-
     if (isDown) {
-      if (ul.nextSelectedIndex < childNodes.length - 1) {
-        ul.nextSelectedIndex++;
-      }
+        while (ul.nextSelectedIndex < childNodes.length - 1) {
+            ul.nextSelectedIndex++;
+            if (!childNodes[ul.nextSelectedIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
     } else {
-      if (ul.nextSelectedIndex > 0) {
-        ul.nextSelectedIndex--;
-      }
+        while (ul.nextSelectedIndex > 0) {
+            ul.nextSelectedIndex--;
+            if (!childNodes[ul.nextSelectedIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
     }
 
     var highlighted = ul.querySelectorAll('.rz-state-highlight');
@@ -532,6 +534,7 @@ window.Radzen = {
     }
     var data = new FormData();
     var files = [];
+    var cancelled = false;
     for (var i = 0; i < uploadComponent.files.length; i++) {
       var file = uploadComponent.files[i];
       data.append(multiple ? 'files' : 'file', file, file.name);
@@ -549,8 +552,14 @@ window.Radzen = {
             progress,
             e.loaded,
             e.total,
-            files
-          );
+            files,
+            cancelled
+          ).then(function (cancel) {
+              if (cancel) {
+                  cancelled = true;
+                  xhr.abort();
+              }
+          });
         }
       }
     };
@@ -563,7 +572,8 @@ window.Radzen = {
           if (status === 0 || (status >= 200 && status < 400)) {
             uploadComponent.invokeMethodAsync(
               'RadzenUpload.OnComplete',
-              xhr.responseText
+                xhr.responseText,
+                cancelled
             );
           } else {
             uploadComponent.invokeMethodAsync(
@@ -600,10 +610,13 @@ window.Radzen = {
 
       if (value && !isNaN(+value)) {
         var numericValue = +value;
-        if (numericValue >= min && numericValue <= max) {
+        if (min != null && numericValue >= min) {
             return;
         }
+        if (max != null && numericValue <= max) {
+            return;
         }
+      }
 
       e.preventDefault();
     }
@@ -613,10 +626,10 @@ window.Radzen = {
 
       if (value && !isNaN(+value)) {
         var numericValue = +value;
-        if (!isNaN(+min) && numericValue < min) {
+        if (min != null && !isNaN(+min) && numericValue < min) {
             e.target.value = min;
         }
-        if (!isNaN(+max) && numericValue > max) {
+        if (max != null && !isNaN(+max) && numericValue > max) {
             e.target.value = max;
         }
       }
@@ -1603,5 +1616,36 @@ window.Radzen = {
         document.addEventListener('mouseup', Radzen[el].mouseUpHandler);
         document.addEventListener('touchmove', Radzen[el].touchMoveHandler, { passive: true });
         document.addEventListener('touchend', Radzen[el].mouseUpHandler, { passive: true });
+    },
+    openWaiting: function() {
+        if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
+            document.body.classList.add('no-scroll');
+        }
+        if (Radzen.WaitingIntervalId != null) {
+            clearInterval(Radzen.WaitingIntervalId);
+        }
+
+        setTimeout(function() {
+                var timerObj = document.getElementsByClassName('rz-waiting-timer');
+                if (timerObj.length == 0) return;
+                var timerStart = new Date().getTime();
+                Radzen.WaitingIntervalId = setInterval(function() {
+                        if (timerObj == null || timerObj[0] == null) {
+                            clearInterval(Radzen.WaitingIntervalId);
+                        } else {
+                            var time = new Date(new Date().getTime() - timerStart);
+                            timerObj[0].innerHTML = Math.floor(time / 1000) + "." + Math.floor((time % 1000) / 100);
+                        }
+                    },
+                    100);
+            },
+            100);
+    },
+    closeWaiting: function() {
+        document.body.classList.remove('no-scroll');
+        if (Radzen.WaitingIntervalId != null) {
+            clearInterval(Radzen.WaitingIntervalId);
+            Radzen.WaitingIntervalId = null;
+        }
     }
 };

@@ -218,7 +218,15 @@ namespace Radzen.Blazor
                 newValue = default(TValue);
             }
 
-            decimal? newValueAsDecimal = newValue == null ? default(decimal?) : (decimal)ConvertType.ChangeType(newValue, typeof(decimal));
+            decimal? newValueAsDecimal;
+            try
+            {
+                newValueAsDecimal = newValue == null ? default(decimal?) : (decimal)ConvertType.ChangeType(newValue, typeof(decimal));
+            }
+            catch
+            {
+                newValueAsDecimal = (decimal)ConvertType.ChangeType(default(TValue), typeof(decimal));
+            }
 
             if (object.Equals(Value, newValue) && (!ValueChanged.HasDelegate || !string.IsNullOrEmpty(Format)))
             {
@@ -289,7 +297,7 @@ namespace Radzen.Blazor
         }
 
 
-#if NET5
+#if NET5_0_OR_GREATER
         /// <summary>
         /// Sets the focus on the input element.
         /// </summary>

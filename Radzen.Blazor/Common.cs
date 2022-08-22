@@ -298,6 +298,10 @@ namespace Radzen
         /// Gets a collection of files that are being uploaded.
         /// </summary>
         public IEnumerable<FileInfo> Files { get; set; }
+        /// <summary>
+        /// Gets or sets a flag indicating whether the underlying XMLHttpRequest should be aborted.
+        /// </summary>
+        public bool Cancel { get; set; }
     }
 
     /// <summary>
@@ -314,6 +318,11 @@ namespace Radzen
         /// Gets the raw server response.
         /// </summary>
         public string RawResponse { get; set; }
+
+        /// <summary>
+        /// Gets a boolean value indicating if the upload was cancelled by the user.
+        /// </summary>
+        public bool Cancelled { get; set; }
     }
 
     /// <summary>
@@ -950,6 +959,18 @@ namespace Radzen
         /// Informative styling.
         /// </summary>
         Info
+    }
+
+    /// <summary>
+    /// Supplies information about a <see cref="RadzenDataGrid{TItem}.PickedColumnsChanged" /> event that is being raised.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class DataGridPickedColumnsChangedEventArgs<T>
+    {
+        /// <summary>
+        /// Gets the picked columns.
+        /// </summary>
+        public IEnumerable<RadzenDataGridColumn<T>> Columns { get; internal set; }
     }
 
     /// <summary>
