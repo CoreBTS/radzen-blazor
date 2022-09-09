@@ -1844,6 +1844,12 @@ namespace Radzen.Blazor
         [Parameter]
         public EventCallback<TItem> RowCreate { get; set; }
 
+        /// <summary>
+        /// TAB-key navigation support
+        /// </summary>
+        /// <value>The index in the tab hierarchy (default: 0)</value>
+        [Parameter]
+        public int TabIndex { get; set; } = 0;
 
         internal Dictionary<TItem, bool> editedItems = new Dictionary<TItem, bool>();
 
