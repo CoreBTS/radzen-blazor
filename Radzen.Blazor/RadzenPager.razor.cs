@@ -94,6 +94,13 @@ namespace Radzen.Blazor
         public int Count { get; set; }
 
         /// <summary>
+        /// The TAB navigation hierarchy index for the control
+        /// </summary>
+        /// <value>The position in the TAB navigation hierarchy</value>
+        [Parameter]
+        public int TabIndex { get; set; } = 0;
+
+        /// <summary>
         /// Gets the current page.
         /// </summary>
         /// <value>The current page.</value>
