@@ -2200,8 +2200,11 @@ namespace Radzen.Blazor
                 Data = null;
             }
 
-            StateHasChanged();
-            InvokeAsync(Reload);
+            InvokeAsync(async () => 
+            {
+                await ChangeState();
+                await Reload();
+            });
         }
 
         /// <summary>
@@ -2241,8 +2244,11 @@ namespace Radzen.Blazor
                 Data = null;
             }
 
-            StateHasChanged();
-            InvokeAsync(Reload);
+            InvokeAsync(async () => 
+            {
+                await ChangeState();
+                await Reload();
+            });
         }
 
         /// <inheritdoc />
