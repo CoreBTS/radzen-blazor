@@ -1,0 +1,62 @@
+# Pipeline to Build and Package custom Radzen.Blazor release
+
+trigger:
+- build-and-package
+
+pool:
+  vmImage: ubuntu-latest
+
+name: '$(Date:yyyyMMdd)$(Rev:rrr)'
+
+steps:
+- task: UseDotNet@2
+  displayName: Enable .NET 6.0
+  inputs:
+    packageType: 'sdk'
+    version: '6.x'
+
+- task: CmdLine@2
+  displayName: Assign Package Version
+  name: AssignPackageVersion
+  inputs:
+    script: |
+      echo "Assigning Package Version"
+
+      versionLine=`grep -E '<Version>.*</Version>' $(Build.SourcesDirectory)/Radzen.Blazor/Radzen.Blazor.csproj`
+      echo "Version Line: $versionLine"
+
+      projectRevision=`echo $versionLine | grep -e '[.0-9]*' --only-matching`
+      echo "Project Version: $projectRevision"
+
+      echo "##vso[task.setvariable variable=SemVer;isOutput=true]$projectRevision-ci-$(Build.BuildNumber)"
+
+- task: DotNetCoreCLI@2
+  displayName: Build Blazor Components
+  inputs:
+    command: 'build'
+    projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
+    arguments: '-c Release -p:Version=$(AssignPackageVersion.SemVer)'
+    publishWebProjects: false
+
+- task: DotNetCoreCLI@2
+  displayName: Package for NuGet
+  inputs:
+    command: 'custom'
+    projects: 'Radzen.Blazor/Radzen.Blazor.csproj'
+    custom: 'pack'
+    arguments: '--no-build --output $(Build.ArtifactStagingDirectory) -c Release -p:Version=$(AssignPackageVersion.SemVer)'
+
+- task: PublishPipelineArtifact@1
+  displayName: Publish Package to Pipeline
+  inputs:
+    targetPath: '$(Build.ArtifactStagingDirectory)/Radzen.Blazor.$(AssignPackageVersion.SemVer).nupkg'
+    artifact: 'NugetPackage'
+    publishLocation: 'pipeline'
+
+- task: DotNetCoreCLI@2
+  displayName: Push Package to Internal Feed
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '53f08e5d-baf5-4a86-9632-7cbf5452840c/b48bbc2a-be7c-4acd-906e-4b3c2bb1b727'

@@ -442,6 +442,21 @@ namespace Radzen
         [Parameter]
         public int FilterDelay { get; set; } = 500;
 
+
+        /// <summary>
+        /// Gets or sets the delay for processing KeyPress events when filtering is disabled.
+        /// </summary>
+        /// <value>The KeyPress delay.</value>
+        [Parameter]
+        public int KeyPressDelay { get; set; } = 200;
+
+        /// <summary>
+        /// Gets or sets the delay for clearing previously typed characters when filtering is disabled.
+        /// </summary>
+        /// <value>The clear delay.</value>
+        [Parameter]
+        public int ClearKeysDelay { get; set; } = 500;
+
         /// <summary>
         /// The search
         /// </summary>
@@ -569,6 +584,15 @@ namespace Radzen
             {
                 Debounce(DebounceFilter, FilterDelay);
             }
+            else if(!AllowFiltering)
+            {
+                if (!ignoredLastKeys.Any(s => string.Equals(s, args.Key, StringComparison.OrdinalIgnoreCase)))
+                {
+                    lastKey += args.Key;
+                    Debounce(DebounceKeyPress, KeyPressDelay);
+                    lastKeyDebouncer.Debounce(ClearKeysDelay, ClearLastKey);
+                }
+            }
         }
 
         /// <summary>
@@ -626,6 +650,82 @@ namespace Radzen
                 selectedIndex = -1;
 
             await JSRuntime.InvokeAsync<string>("Radzen.repositionPopup", Element, PopupID);
+        }
+
+        /// <summary>
+        /// Stores the last key pressed for debounce handling
+        /// </summary>
+        string lastKey = null;
+        static readonly string[] ignoredLastKeys = new [] { "Shift", "Alt", "Control", "Meta", "Backspace", "Help", "Home", "End", "PageUp", "PageDown", "CapsLock" };
+        Debouncer lastKeyDebouncer = new Debouncer();
+        Task ClearLastKey()
+        {
+            lastKey = null;
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Debounces the filter.
+        /// </summary>
+        async Task DebounceKeyPress()
+        {
+            // store locally to handle the debounced clearing of the typed characters
+            var localLastKey = lastKey;
+            if (string.Equals(localLastKey, " "))
+            {
+                 // Standard browser behavior on a lone 'spacebar' press is to select the current
+                 // element, which we've already done with any previous action, so just close the
+                 // popup and get out
+                 await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+                 return;
+            }
+            
+            // has data been loaded yet?
+            if (Data == null && LoadData.HasDelegate)
+            {
+                await LoadData.InvokeAsync(await GetLoadDataArgs());
+            }
+
+            var currentText = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", Element);
+            _view = null;
+
+            var rawItems = (View != null ? View : Enumerable.Empty<object>()).Cast<object>();
+            var items = rawItems.Select(i => GetTextValue(i)).ToList();
+            var itemIndex = selectedIndex;
+            var newItemIndex = items.Select((i, idx) => (item: i, index: idx))
+                                    .Where(s => s.index > itemIndex && s.item.StartsWith(localLastKey, StringComparison.OrdinalIgnoreCase))
+                                    .Select(s => s.index)
+                                    .DefaultIfEmpty(-1)
+                                    .FirstOrDefault();
+            if (newItemIndex < 0)
+            {
+                newItemIndex = items.Select((i, idx) => (item: i, index: idx))
+                                    .Where(s => s.item.StartsWith(localLastKey, StringComparison.OrdinalIgnoreCase))
+                                    .Select(s => s.index)
+                                    .FirstOrDefault();
+            }
+
+            var newItem = rawItems.ElementAt(newItemIndex);
+
+            await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", Element, $"{rawItems.ElementAt(newItemIndex)}".Trim());
+
+            await InvokeAsync(async () => 
+            { 
+                await OnSelectItem(newItem, true);
+                StateHasChanged(); 
+            });
+
+            await JSRuntime.InvokeVoidAsync("Radzen.ensurePopupAndSelectListItem", Element, PopupID, list, newItemIndex > itemIndex, newItemIndex);
+        }
+
+        private string GetTextValue(object input)
+        {
+            if (!string.IsNullOrWhiteSpace(TextProperty))
+            {
+                return $"{PropertyAccess.GetItemOrValueFromProperty(input, TextProperty)}";
+            }
+
+            return $"{input}";
         }
 
         /// <summary>
@@ -993,6 +1093,7 @@ namespace Radzen
                     }
                 }
             }
+
             if (raiseChange)
             {
                 if (ValueChanged.HasDelegate)
@@ -1023,6 +1124,7 @@ namespace Radzen
 
                 await Change.InvokeAsync(internalValue);
             }
+
             StateHasChanged();
         }
 

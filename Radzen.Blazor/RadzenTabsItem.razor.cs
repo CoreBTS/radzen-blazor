@@ -68,6 +68,13 @@ namespace Radzen.Blazor
         public bool Disabled { get; set; }
 
         /// <summary>
+        /// Gets or sets the tab index for the panel / expansion button
+        /// </summary>
+        /// <value>The tab index</value>
+        [Parameter]
+        public int TabIndex { get; set; }
+
+        /// <summary>
         /// Gets the class list.
         /// </summary>
         /// <value>The class list.</value>

@@ -1,0 +1,54 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ "build-and-package" ]
+  pull_request:
+    branches: [ "build-and-package" ]
+
+jobs:
+  build:
+#    permissions:
+#      packages: write
+#      repo: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2.1.0
+      with:
+        dotnet-version: 6.0.x
+      #   source-url: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+      # env:
+      #   NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}        
+          
+    - name: Assign Version
+      run: |
+        echo '::echo::on'
+
+        versionLine=`grep -E '<Version>.*</Version>' $GITHUB_WORKSPACE/Radzen.Blazor/Radzen.Blazor.csproj`
+        echo "Version Line: $versionLine"
+
+        projectRevision=`echo $versionLine | grep -e '[.0-9]*' --only-matching`
+        echo "Project Version: $projectRevision"
+
+        dateString=`date "+%Y%m%d"`
+        paddedRunNumber=`printf %03d $GITHUB_RUN_NUMBER`
+        echo "PACKAGE_VERSION=$projectRevision-ci-$dateString$paddedRunNumber" >> $GITHUB_ENV
+
+    - name: Restore dependencies
+      working-directory: ./Radzen.Blazor
+      run: dotnet restore
+    - name: Build
+      working-directory: ./Radzen.Blazor
+      run: dotnet build --no-restore -c Release -p:Version=$PACKAGE_VERSION
+    - name: Package
+      working-directory: ./Radzen.Blazor
+      run: dotnet pack --no-build -c Release --output $GITHUB_WORKSPACE/packages -p:Version=$PACKAGE_VERSION -p:RepositoryUrl=https://github.com/${{ github.repository }}
+    # - name: Setup NuGet Package Source
+    #   working-directory: ./Radzen.Blazor
+    #   run: dotnet nuget add source --name github "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+    - name: Publish Package
+      run: dotnet nuget push "packages/Radzen.Blazor.$PACKAGE_VERSION.nupkg" --skip-duplicate --no-symbols --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
