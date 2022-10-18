@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using Radzen.Blazor.Rendering;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,16 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return GetClassList("rz-spinner").ToString();
+            return GetClassList("rz-spinner")
+                                        .Add($"rz-text-align-{Enum.GetName(typeof(TextAlign), TextAlign).ToLower()}")
+                                        .ToString();
+        }
+
+        string GetInputCssClass()
+        {
+            return GetClassList("rz-spinner-input")
+                        .Add("rz-inputtext")
+                        .ToString();
         }
 
         private string getOnInput()
@@ -178,7 +188,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value><c>true</c> if input automatic complete is enabled; otherwise, <c>false</c>.</value>
         [Parameter]
-        public bool AutoComplete { get; set; } = true;
+        public bool AutoComplete { get; set; } = false;
 
         /// <summary>
         /// Gets or sets a value indicating whether up down buttons are shown.
@@ -186,6 +196,13 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if up down buttons are shown; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool ShowUpDown { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the text align.
+        /// </summary>
+        /// <value>The text align.</value>
+        [Parameter]
+        public TextAlign TextAlign { get; set; } = TextAlign.Left;
 
         /// <summary>
         /// Handles the <see cref="E:Change" /> event.
@@ -225,7 +242,7 @@ namespace Radzen.Blazor
             }
             catch
             {
-                newValueAsDecimal = (decimal)ConvertType.ChangeType(default(TValue), typeof(decimal));
+                newValueAsDecimal = default(TValue) == null ? default(decimal?) : (decimal)ConvertType.ChangeType(default(TValue), typeof(decimal));
             }
 
             if (object.Equals(Value, newValue) && (!ValueChanged.HasDelegate || !string.IsNullOrEmpty(Format)))
@@ -295,7 +312,6 @@ namespace Radzen.Blazor
                 }
             }
         }
-
 
 #if NET5_0_OR_GREATER
         /// <summary>

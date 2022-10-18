@@ -135,7 +135,14 @@ namespace Radzen
                 {
                     return !string.IsNullOrEmpty($"{internalValue}");
                 }
-                return internalValue != null;
+                else if (typeof(IEnumerable).IsAssignableFrom(typeof(T)))
+                {
+                    return internalValue != null && ((IEnumerable)internalValue).Cast<object>().Any();
+                }
+                else
+                {
+                    return internalValue != null;
+                }
             }
         }
 
@@ -186,6 +193,13 @@ namespace Radzen
         /// <value><c>true</c> if multiple; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Multiple { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the user can select all values in multiple selection. Set to <c>true</c> by default.
+        /// </summary>
+        /// <value><c>true</c> if select all values is allowed; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool AllowSelectAll { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the template.
@@ -255,7 +269,19 @@ namespace Radzen
                 internalValue = selectedItems.AsQueryable().Cast(type);
             }
 
-            await ValueChanged.InvokeAsync((T)internalValue);
+            if (typeof(IList).IsAssignableFrom(typeof(T)))
+            {
+                var list = (IList)Activator.CreateInstance(typeof(T));
+                foreach (var i in (IEnumerable)internalValue)
+                {
+                    list.Add(i);
+                }
+                await ValueChanged.InvokeAsync((T)(object)list);
+            }
+            else
+            {
+                await ValueChanged.InvokeAsync((T)internalValue);
+            }
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
             await Change.InvokeAsync(internalValue);
 
@@ -337,12 +363,25 @@ namespace Radzen
                         selectedItems.Clear();
                     }
 
-                    OnDataChanged();
+                    InvokeAsync(OnDataChanged);
 
                     StateHasChanged();
                 }
             }
         }
+
+#if NET5_0_OR_GREATER
+        /// <inheritdoc/>
+        protected override async Task OnDataChanged()
+        {
+            await base.OnDataChanged();
+
+            if (AllowVirtualization && Virtualize != null && !LoadData.HasDelegate)
+            {
+                await InvokeAsync(Virtualize.RefreshDataAsync);
+            }
+        }
+#endif
 
         /// <summary>
         /// Gets the popup identifier.
@@ -852,7 +891,7 @@ namespace Radzen
                 }
                 else
                 {
-                    return item == selectedItem;
+                    return object.Equals(item,selectedItem);
                 }
             }
         }
@@ -876,6 +915,13 @@ namespace Radzen
                 }
             }
         }
+
+        /// <summary>
+        /// Gets or sets the item separator for Multiple dropdown.
+        /// </summary>
+        /// <value>Item separator</value>
+        [Parameter]
+        public string Separator { get; set; } = ",";
 
         /// <summary>
         /// Gets the items.
