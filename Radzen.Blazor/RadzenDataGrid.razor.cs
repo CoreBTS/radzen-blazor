@@ -2200,6 +2200,7 @@ namespace Radzen.Blazor
                 Data = null;
             }
 
+            StateHasChanged();
             InvokeAsync(Reload);
         }
 
@@ -2240,6 +2241,7 @@ namespace Radzen.Blazor
                 Data = null;
             }
 
+            StateHasChanged();
             InvokeAsync(Reload);
         }
 
