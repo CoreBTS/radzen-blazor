@@ -1,14 +1,16 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
+
+using Radzen.Blazor;
+using Radzen.Blazor.Rendering;
+
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using Radzen.Blazor;
-using Radzen.Blazor.Rendering;
 
 namespace Radzen
 {
@@ -214,6 +216,32 @@ namespace Radzen
         }
 
         /// <summary>
+        /// Gets or sets the search text
+        /// </summary>
+        [Parameter]
+        public string SearchText
+        {
+            get
+            {
+                return searchText;
+            }
+            set
+            {
+                if (searchText != value)
+                {
+                    searchText = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the search text changed.
+        /// </summary>
+        /// <value>The search text changed.</value>
+        [Parameter]
+        public EventCallback<string> SearchTextChanged { get; set; }
+
+        /// <summary>
         /// The search text
         /// </summary>
         internal string searchText;
@@ -288,18 +316,33 @@ namespace Radzen
         /// <returns>A Task representing the asynchronous operation.</returns>
         public override async Task SetParametersAsync(ParameterView parameters)
         {
+            var searchTextChanged = parameters.DidParameterChange(nameof(SearchText), SearchText);
+            if (searchTextChanged)
+            {
+                searchText = parameters.GetValueOrDefault<string>(SearchText);
+            }
+
             var dataChanged = parameters.DidParameterChange(nameof(Data), Data);
+
             if (dataChanged)
             {
                 await OnDataChanged();
             }
+
+            var disabledChanged = parameters.DidParameterChange(nameof(Disabled), Disabled);
 
             var result = base.SetParametersAsync(parameters);
 
             if (EditContext != null && ValueExpression != null && FieldIdentifier.Model != EditContext.Model)
             {
                 FieldIdentifier = FieldIdentifier.Create(ValueExpression);
+                EditContext.OnValidationStateChanged -= ValidationStateChanged;
                 EditContext.OnValidationStateChanged += ValidationStateChanged;
+            }
+
+            if (disabledChanged)
+            {
+                FormFieldContext?.DisabledChanged(Disabled);
             }
 
             await result;
@@ -334,7 +377,7 @@ namespace Radzen
         /// Gets the value.
         /// </summary>
         /// <returns>System.Object.</returns>
-        public object GetValue()
+        public virtual object GetValue()
         {
             return Value;
         }
@@ -347,6 +390,21 @@ namespace Radzen
         /// <returns>ClassList.</returns>
         protected ClassList GetClassList(string className) => ClassList.Create(className)
                                                                        .AddDisabled(Disabled)
-                                                                       .Add(FieldIdentifier, EditContext);
+                                                                       .Add(FieldIdentifier, EditContext)
+                                                                       .Add("rz-state-empty", !HasValue);
+#if NET5_0_OR_GREATER
+        /// <inheritdoc/>
+        public virtual async ValueTask FocusAsync()
+        {
+            await Element.FocusAsync();
+        }
+#endif
+
+        /// <summary> Provides support for RadzenFormField integration. </summary>
+        [CascadingParameter]
+        public IFormFieldContext FormFieldContext { get; set; }
+
+        /// <summary> Gets the current placeholder. Returns empty string if this component is inside a RadzenFormField.</summary>
+        protected string CurrentPlaceholder => FormFieldContext != null ? " " : Placeholder;
     }
 }

@@ -15,9 +15,9 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenButton : RadzenComponent
     {
-        private string getButtonSize()
+        internal string getButtonSize()
         {
-            return Size == ButtonSize.Medium ? "md" : "sm";
+            return Size == ButtonSize.Medium ? "md" : Size == ButtonSize.Large ? "lg" : Size == ButtonSize.Small ? "sm" : "xs";
         }
 
         /// <summary>
@@ -42,6 +42,13 @@ namespace Radzen.Blazor
         public string Icon { get; set; }
 
         /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string IconColor { get; set; }
+
+        /// <summary>
         /// Gets or sets the image.
         /// </summary>
         /// <value>The image.</value>
@@ -61,6 +68,20 @@ namespace Radzen.Blazor
         /// <value>The type of the button.</value>
         [Parameter]
         public ButtonType ButtonType { get; set; } = ButtonType.Button;
+
+        /// <summary>
+        /// Gets or sets the design variant of the button.
+        /// </summary>
+        /// <value>The variant of the button.</value>
+        [Parameter]
+        public Variant Variant { get; set; } = Variant.Filled;
+
+        /// <summary>
+        /// Gets or sets the color shade of the button.
+        /// </summary>
+        /// <value>The color shade of the button.</value>
+        [Parameter]
+        public Shade Shade { get; set; } = Shade.Default;
 
         /// <summary>
         /// Gets or sets the size.
@@ -109,7 +130,7 @@ namespace Radzen.Blazor
         /// Handles the <see cref="E:Click" /> event.
         /// </summary>
         /// <param name="args">The <see cref="MouseEventArgs"/> instance containing the event data.</param>
-        public async Task OnClick(MouseEventArgs args)
+        public virtual async Task OnClick(MouseEventArgs args)
         {
             if (clicking)
             {
@@ -131,7 +152,7 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return $"rz-button rz-button-{getButtonSize()} btn-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()}{(IsDisabled ? " rz-state-disabled" : "")}{(string.IsNullOrEmpty(Text) && !string.IsNullOrEmpty(Icon) ? " rz-button-icon-only" : "")}";
+            return $"rz-button rz-button-{getButtonSize()} rz-variant-{Enum.GetName(typeof(Variant), Variant).ToLowerInvariant()} rz-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()} rz-shade-{Enum.GetName(typeof(Shade), Shade).ToLowerInvariant()}{(IsDisabled ? " rz-state-disabled" : "")}{(string.IsNullOrEmpty(Text) && !string.IsNullOrEmpty(Icon) ? " rz-button-icon-only" : "")}";
         }
     }
 }

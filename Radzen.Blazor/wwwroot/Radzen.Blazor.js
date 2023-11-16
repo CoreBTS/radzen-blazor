@@ -18,6 +18,7 @@ if (!Element.prototype.closest) {
 
 var resolveCallbacks = [];
 var rejectCallbacks = [];
+var radzenRecognition;
 
 window.Radzen = {
     throttle: function (callback, delay) {
@@ -62,7 +63,7 @@ window.Radzen = {
      if (el) {
         var handler = function (e) {
             e.stopPropagation();
-            e.preventDefault(); 
+            e.preventDefault();
             ref.invokeMethodAsync('RadzenComponent.RaiseContextMenu',
                 {
                     ClientX: e.clientX,
@@ -152,7 +153,7 @@ window.Radzen = {
         for (var i = 0; i < count; i++) {
             var content = el.parentNode.children[i];
             if (content) {
-                content.style.display = i == index ? 'block' : 'none';
+                content.style.display = i == index ? '' : 'none';
             }
             var header = el.parentNode.previousElementSibling.children[i];
             if (header) {
@@ -198,7 +199,7 @@ window.Radzen = {
 
     document.body.appendChild(script);
   },
-  createMap: function (wrapper, ref, id, apiKey, zoom, center, markers) {
+  createMap: function (wrapper, ref, id, apiKey, zoom, center, markers, options, fitBoundsToMarkersOnUpdate) {
     var api = function () {
       var defaultView = document.defaultView;
 
@@ -226,43 +227,74 @@ window.Radzen = {
         });
       });
 
-      Radzen.updateMap(id, zoom, center, markers);
+      Radzen.updateMap(id, zoom, center, markers, options, fitBoundsToMarkersOnUpdate);
     });
   },
-  updateMap: function (id, zoom, center, markers) {
-    if (Radzen[id] && Radzen[id].instance) {
-      if (Radzen[id].instance.markers && Radzen[id].instance.markers.length) {
-        for (var i = 0; i < Radzen[id].instance.markers.length; i++) {
-          Radzen[id].instance.markers[i].setMap(null);
+  updateMap: function (id, zoom, center, markers, options, fitBoundsToMarkersOnUpdate) {
+    var api = function () {
+        var defaultView = document.defaultView;
+
+        return new Promise(function (resolve, reject) {
+            if (defaultView.google && defaultView.google.maps) {
+                return resolve(defaultView.google);
+            }
+
+            Radzen.loadGoogleMaps(defaultView, apiKey, resolve, reject);
+        });
+    };
+    api().then(function (google) {
+        let markerBounds = new google.maps.LatLngBounds();
+
+        if (Radzen[id] && Radzen[id].instance) {
+            if (Radzen[id].instance.markers && Radzen[id].instance.markers.length) {
+                for (var i = 0; i < Radzen[id].instance.markers.length; i++) {
+                    Radzen[id].instance.markers[i].setMap(null);
+                }
+            }
+
+            if (markers) {
+                Radzen[id].instance.markers = [];
+
+                markers.forEach(function (m) {
+                    var marker = new this.google.maps.Marker({
+                        position: m.position,
+                        title: m.title,
+                        label: m.label
+                    });
+
+                    marker.addListener('click', function (e) {
+                        Radzen[id].invokeMethodAsync('RadzenGoogleMap.OnMarkerClick', {
+                            Title: marker.title,
+                            Label: marker.label,
+                            Position: marker.position
+                        });
+                    });
+
+                    marker.setMap(Radzen[id].instance);
+
+                    Radzen[id].instance.markers.push(marker);
+
+                        markerBounds.extend(marker.position);
+                });
+            }
+
+            if (zoom) {
+                Radzen[id].instance.setZoom(zoom);
+                }
+
+            if (center) {
+                Radzen[id].instance.setCenter(center);
+            }
+
+            if (options) {
+                Radzen[id].instance.setOptions(options);
+            }
+
+            if (markers && fitBoundsToMarkersOnUpdate) {
+                Radzen[id].instance.fitBounds(markerBounds);
+            }
         }
-      }
-
-      Radzen[id].instance.markers = [];
-
-      markers.forEach(function (m) {
-        var marker = new this.google.maps.Marker({
-          position: m.position,
-          title: m.title,
-          label: m.label
-        });
-
-        marker.addListener('click', function (e) {
-          Radzen[id].invokeMethodAsync('RadzenGoogleMap.OnMarkerClick', {
-            Title: marker.title,
-            Label: marker.label,
-            Position: marker.position
-          });
-        });
-
-        marker.setMap(Radzen[id].instance);
-
-        Radzen[id].instance.markers.push(marker);
-      });
-
-      Radzen[id].instance.setZoom(zoom);
-
-      Radzen[id].instance.setCenter(center);
-    }
+    });
   },
   destroyMap: function (id) {
     if (Radzen[id].instance) {
@@ -299,13 +331,11 @@ window.Radzen = {
       }
 
       var newValue = percent * (max - min) + min;
-      var oldValue = range ? value[slider.isMin ? 0 : 1] : value;
 
       if (
         slider.canChange &&
         newValue >= min &&
-        newValue <= max &&
-        newValue != oldValue
+        newValue <= max
       ) {
         slider.invokeMethodAsync(
           'RadzenSlider.OnValueChange',
@@ -403,12 +433,7 @@ window.Radzen = {
       ul.nextSelectedIndex <= childNodes.length - 1
     ) {
       childNodes[ul.nextSelectedIndex].classList.add('rz-state-highlight');
-      if (ul.parentNode.classList.contains('rz-autocomplete-panel')) {
-        ul.parentNode.scrollTop = childNodes[ul.nextSelectedIndex].offsetTop;
-      } else {
-        ul.parentNode.scrollTop =
-          childNodes[ul.nextSelectedIndex].offsetTop - ul.parentNode.offsetTop;
-      }
+      childNodes[ul.nextSelectedIndex].scrollIntoView({block:'nearest'});
     }
   },
   focusListItem: function (input, ul, isDown, startIndex) {
@@ -457,10 +482,54 @@ window.Radzen = {
     }
 
     return ul.nextSelectedIndex;
+    },
+  focusTableRow: function (gridId, isDown, startIndex) {
+    var grid = document.getElementById(gridId);
+    if (!grid) return;
+
+    var table = grid.querySelector('.rz-grid-table').getElementsByTagName("tbody")[0];
+
+    if (!table.rows || table.rows.length == 0) return;
+
+    if (startIndex == undefined || startIndex == null) {
+      startIndex = -1;
+    }
+
+    table.nextSelectedIndex = startIndex;
+    if (isDown) {
+        while (table.nextSelectedIndex < table.rows.length - 1) {
+            table.nextSelectedIndex++;
+            if (!table.rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
+    } else {
+        while (table.nextSelectedIndex > 0) {
+            table.nextSelectedIndex--;
+            if (!table.rows[table.nextSelectedIndex].classList.contains('rz-state-disabled'))
+                break;
+        }
+    }
+
+    var highlighted = table.querySelectorAll('.rz-state-highlight');
+    if (highlighted.length) {
+      for (var i = 0; i < highlighted.length; i++) {
+        highlighted[i].classList.remove('rz-state-highlight');
+      }
+    }
+
+    if (
+      table.nextSelectedIndex >= 0 &&
+      table.nextSelectedIndex <= table.rows.length - 1
+    ) {
+      table.rows[table.nextSelectedIndex].classList.add('rz-state-highlight');
+      table.parentNode.parentNode.scrollTop = table.rows[table.nextSelectedIndex].offsetTop - table.rows[table.nextSelectedIndex].offsetHeight;
+    }
+
+    return table.nextSelectedIndex;
   },
-  uploadInputChange: function (e, url, auto, multiple) {
+  uploadInputChange: function (e, url, auto, multiple, clear, parameterName) {
       if (auto) {
-          Radzen.upload(e.target, url, multiple, true);
+          Radzen.upload(e.target, url, multiple, clear, parameterName);
           e.target.value = '';
       } else {
           Radzen.uploadChange(e.target);
@@ -526,7 +595,7 @@ window.Radzen = {
   removeFileFromFileInput: function (fileInput) {
     fileInput.value = '';
   },
-  upload: function (fileInput, url, multiple, clear) {
+  upload: function (fileInput, url, multiple, clear, parameterName) {
     var uploadComponent = Radzen.uploadComponents && Radzen.uploadComponents[fileInput.id];
     if (!uploadComponent) { return; }
     if (!uploadComponent.files || clear) {
@@ -537,7 +606,7 @@ window.Radzen = {
     var cancelled = false;
     for (var i = 0; i < uploadComponent.files.length; i++) {
       var file = uploadComponent.files[i];
-      data.append(multiple ? 'files' : 'file', file, file.name);
+      data.append(parameterName || (multiple ? 'files' : 'file'), file, file.name);
       files.push({Name: file.name, Size: file.size});
     }
     var xhr = new XMLHttpRequest();
@@ -621,8 +690,12 @@ window.Radzen = {
       e.preventDefault();
     }
   },
-  numericOnInput: function (e, min, max) {
+  numericOnInput: function (e, min, max, isNullable) {
       var value = e.target.value;
+
+      if (!isNullable && value == '' && min != null) {
+          e.target.value = min;
+      }
 
       if (value && !isNaN(+value)) {
         var numericValue = +value;
@@ -653,22 +726,33 @@ window.Radzen = {
 
     e.preventDefault();
   },
-  openContextMenu: function (x,y,id) {
+  openContextMenu: function (x,y,id, instance, callback) {
     Radzen.closePopup(id);
 
-    Radzen.openPopup(null, id, false, null, x, y);
+    Radzen.openPopup(null, id, false, null, x, y, instance, callback);
   },
-  openTooltip: function (target, id, duration, position) {
-    Radzen.closePopup(id);
+  openTooltip: function (target, id, delay, duration, position, closeTooltipOnDocumentClick, instance, callback) {
+    Radzen.closeTooltip(id);
 
-    if (Radzen[id + 'duration']) {
-      clearTimeout(Radzen[id + 'duration']);
+    if (delay) {
+        Radzen[id + 'delay'] = setTimeout(Radzen.openPopup, delay, target, id, false, position, null, null, instance, callback, closeTooltipOnDocumentClick);
+    } else {
+        Radzen.openPopup(target, id, false, position, null, null, instance, callback, closeTooltipOnDocumentClick);
     }
 
-    Radzen.openPopup(target, id, false, position);
-
     if (duration) {
-      Radzen[id + 'duration'] = setTimeout(Radzen.closePopup, duration, id);
+      Radzen[id + 'duration'] = setTimeout(Radzen.closePopup, duration, id, instance, callback);
+    }
+  },
+  closeTooltip(id) {
+    Radzen.closePopup(id);
+
+    if (Radzen[id + 'delay']) {
+        clearTimeout(Radzen[id + 'delay']);
+    }
+
+    if (Radzen[id + 'duration']) {
+        clearTimeout(Radzen[id + 'duration']);
     }
   },
   findPopup: function (id) {
@@ -701,7 +785,7 @@ window.Radzen = {
 
       popup.style.top = top + 'px';
   },
-  openPopup: function (parent, id, syncWidth, position, x, y, instance, callback) {
+  openPopup: function (parent, id, syncWidth, position, x, y, instance, callback, closeOnDocumentClick = true) {
     var popup = document.getElementById(id);
     if (!popup) return;
 
@@ -801,38 +885,38 @@ window.Radzen = {
     }
 
     Radzen[id] = function (e) {
-        if(e.type == 'contextmenu' || !e.target) return;
-        if (!/Android/i.test(navigator.userAgent) && e.type == 'resize') {
-            Radzen.closePopup(id, instance, callback);
+        if(e.type == 'contextmenu' || !e.target || !closeOnDocumentClick) return;
+        if (!/Android/i.test(navigator.userAgent) &&
+            !['input', 'textarea'].includes(document.activeElement ? document.activeElement.tagName.toLowerCase() : '') && e.type == 'resize') {
+            Radzen.closePopup(id, instance, callback, e);
             return;
         }
-        var closestPopup = e.target.closest('.rz-popup');
+        var closestPopup = e.target.closest && (e.target.closest('.rz-popup') || e.target.closest('.rz-overlaypanel'));
         if (closestPopup && closestPopup != popup) {
           return;
         }
+        var closestLink = e.target.closest && (e.target.closest('.rz-link') || e.target.closest('.rz-navigation-item-link'));
+        if (closestLink && closestLink.closest && closestLink.closest('a')) {
+            if (Radzen.closeAllPopups) {
+                Radzen.closeAllPopups();
+            }
+        }
         if (parent) {
           if (e.type == 'mousedown' && !parent.contains(e.target) && !popup.contains(e.target)) {
-            Radzen.closePopup(id, instance, callback);
+            Radzen.closePopup(id, instance, callback, e);
           }
         } else {
           if (!popup.contains(e.target)) {
-            Radzen.closePopup(id, instance, callback);
+            Radzen.closePopup(id, instance, callback, e);
           }
         }
     };
 
-    if (!Radzen.closePopupsOnScroll) {
-        Radzen.closePopupsOnScroll = function (e) {
-            for (var i = 0; i < Radzen.popups.length; i++) {
-                var p = Radzen.popups[i];
-                Radzen.closePopup(p.id, p.instance, p.callback);
-            }
-            Radzen.popups = [];
-        };
+    if (!Radzen.popups) {
         Radzen.popups = [];
     }
 
-    Radzen.popups.push({id, instance, callback});
+    Radzen.popups.push({ id, instance, callback });
 
     document.body.appendChild(popup);
     document.removeEventListener('mousedown', Radzen[id]);
@@ -843,8 +927,8 @@ window.Radzen = {
     var p = parent;
     while (p && p != document.body) {
         if (p.scrollWidth > p.clientWidth || p.scrollHeight > p.clientHeight) {
-            p.removeEventListener('scroll', Radzen.closePopupsOnScroll);
-            p.addEventListener('scroll', Radzen.closePopupsOnScroll);
+            p.removeEventListener('scroll', Radzen.closeAllPopups);
+            p.addEventListener('scroll', Radzen.closeAllPopups);
         }
         p = p.parentElement;
     }
@@ -854,10 +938,38 @@ window.Radzen = {
         document.addEventListener('contextmenu', Radzen[id]);
     }
   },
-  closePopup: function (id, instance, callback) {
+  closeAllPopups: function (e, id) {
+    if (!Radzen.popups) return;
+    var el = e && e.target || id && documentElement.getElementById(id);
+    for (var i = 0; i < Radzen.popups.length; i++) {
+        var p = Radzen.popups[i];
+
+        var closestPopup = el && el.closest && (el.closest('.rz-popup') || el.closest('.rz-overlaypanel'));
+        if (closestPopup && closestPopup != p) {
+            return;
+        }
+
+        Radzen.closePopup(p.id, p.instance, p.callback, e);
+    }
+    Radzen.popups = [];
+  },
+  closePopup: function (id, instance, callback, e) {
     var popup = document.getElementById(id);
     if (!popup) return;
-    if (popup.style.display == 'none') return;
+    if (popup.style.display == 'none') {
+        var popups = Radzen.findPopup(id);
+        if (popups.length > 1) {
+            for (var i = 0; i < popups.length; i++) {
+                if (popups[i].style.display == 'none') {
+                    popups[i].parentNode.removeChild(popups[i]);
+                } else {
+                    popup = popups[i];
+                }
+            }
+        } else {
+            return;
+        }
+    }
 
     if (popup) {
       if (popup.minWidth) {
@@ -879,9 +991,19 @@ window.Radzen = {
       instance.invokeMethodAsync(callback);
     }
 
-    if (Radzen.activeElement && Radzen.activeElement == document.activeElement || Radzen.activeElement && document.activeElement == document.body) {
-        Radzen.activeElement.focus();
-        Radzen.activeElement = null;
+    if (Radzen.activeElement && Radzen.activeElement == document.activeElement ||
+        Radzen.activeElement && document.activeElement == document.body ||
+        Radzen.activeElement && document.activeElement &&
+            (document.activeElement.classList.contains('rz-dropdown-filter') || document.activeElement.classList.contains('rz-lookup-search-input'))) {
+        setTimeout(function () {
+            if (e && e.target && e.target.tabIndex != -1) {
+                Radzen.activeElement = e.target;
+            }
+            if (Radzen.activeElement) {
+               Radzen.activeElement.focus();
+            }
+            Radzen.activeElement = null;
+        }, 100);
     }
   },
   togglePopup: function (parent, id, syncWidth, instance, callback) {
@@ -933,7 +1055,10 @@ window.Radzen = {
         }
     }
   },
-  openDialog: function (options, dialogService) {
+  openDialog: function (options, dialogService, dialog) {
+    if (Radzen.closeAllPopups) {
+        Radzen.closeAllPopups();
+    }
     Radzen.dialogService = dialogService;
     if (
       document.documentElement.scrollHeight >
@@ -942,28 +1067,96 @@ window.Radzen = {
       document.body.classList.add('no-scroll');
     }
 
-    if (options.autoFocusFirstElement) {
-        setTimeout(function () {
-            var dialogs = document.querySelectorAll('.rz-dialog-content');
-            if (dialogs.length == 0) return;
-            var lastDialog = dialogs[dialogs.length - 1];
+    setTimeout(function () {
+        var dialogs = document.querySelectorAll('.rz-dialog-content');
+        if (dialogs.length == 0) return;
+        var lastDialog = dialogs[dialogs.length - 1];
 
-            if (lastDialog) {
-                var focusable = lastDialog.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-                var firstFocusable = focusable[0];
-                if (firstFocusable) {
-                    firstFocusable.focus();
+        if (lastDialog) {
+            lastDialog.removeEventListener('keydown', Radzen.focusTrapDialog);
+            lastDialog.addEventListener('keydown', Radzen.focusTrapDialog);
+
+            dialog.offsetWidth = lastDialog.parentElement.offsetWidth;
+            dialog.offsetHeight = lastDialog.parentElement.offsetHeight;
+            var dialogResize = function (e) {
+                if(!dialog) return;
+                if (dialog.offsetWidth != e[0].target.offsetWidth || dialog.offsetHeight != e[0].target.offsetHeight) {
+
+                    dialog.offsetWidth = e[0].target.offsetWidth;
+                    dialog.offsetHeight = e[0].target.offsetHeight;
+
+                    dialog.invokeMethodAsync(
+                        'RadzenDialog.OnResize',
+                        e[0].target.offsetWidth,
+                        e[0].target.offsetHeight
+                    );
+                }
+            };
+            Radzen.dialogResizer = new ResizeObserver(dialogResize).observe(lastDialog.parentElement);
+
+            if (options.autoFocusFirstElement) {
+                if (lastDialog.querySelectorAll('.rz-html-editor-content').length) {
+                    var editable = lastDialog.querySelector('.rz-html-editor-content');
+                    if (editable) {
+                        var selection = window.getSelection();
+                        var range = document.createRange();
+                        range.setStart(editable, 0);
+                        range.setEnd(editable, 0);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    }
+                } else {
+                    var focusable = Radzen.getFocusableDialogElements();
+                    var firstFocusable = focusable[0];
+                    if (firstFocusable) {
+                        firstFocusable.focus();
+                    }
                 }
             }
-        }, 500);
-    }
+        }
+    }, 500);
+
+    document.removeEventListener('keydown', Radzen.closePopupOrDialog);
     if (options.closeDialogOnEsc) {
-        document.removeEventListener('keydown', Radzen.closePopupOrDialog);
         document.addEventListener('keydown', Radzen.closePopupOrDialog);
     }
   },
   closeDialog: function () {
+    Radzen.dialogResizer = null;
     document.body.classList.remove('no-scroll');
+    var dialogs = document.querySelectorAll('.rz-dialog-content');
+    if (dialogs.length == 0) {
+        document.removeEventListener('keydown', Radzen.closePopupOrDialog);
+    }
+  },
+  getFocusableDialogElements: function () {
+    var dialogs = document.querySelectorAll('.rz-dialog-content');
+    if (dialogs.length == 0) return [];
+    var lastDialog = dialogs[dialogs.length - 1];
+    return [...lastDialog.querySelectorAll('a, button, input, textarea, select, details, iframe, embed, object, summary dialog, audio[controls], video[controls], [contenteditable], [tabindex]')]
+        .filter(el => el && el.tabIndex > -1 && !el.hasAttribute('disabled') && el.offsetParent !== null);
+  },
+  focusTrapDialog: function (e) {
+    e = e || window.event;
+    var isTab = false;
+    if ("key" in e) {
+        isTab = (e.key === "Tab");
+    } else {
+        isTab = (e.keyCode === 9);
+    }
+    if (isTab) {
+        var focusable = Radzen.getFocusableDialogElements();
+        var firstFocusable = focusable[0];
+        var lastFocusable = focusable[focusable.length - 1];
+
+        if (firstFocusable && e.shiftKey && document.activeElement === firstFocusable) {
+            e.preventDefault();
+            firstFocusable.focus();
+        } else if (lastFocusable && !e.shiftKey && document.activeElement === lastFocusable) {
+            e.preventDefault();
+            lastFocusable.focus();
+        }
+    }
   },
   closePopupOrDialog: function (e) {
       e = e || window.event;
@@ -980,7 +1173,10 @@ window.Radzen = {
                   return;
               }
           }
-
+          var dialogs = document.querySelectorAll('.rz-dialog-content');
+          if (dialogs.length == 0) {
+              document.removeEventListener('keydown', Radzen.closePopupOrDialog);
+          }
           Radzen.dialogService.invokeMethodAsync('DialogService.Close', null);
       }
   },
@@ -1059,10 +1255,10 @@ window.Radzen = {
 
     return readAsDataURL(fileInput);
   },
-  toggleMenuItem: function (target, event) {
+  toggleMenuItem: function (target, event, defaultActive) {
     var item = target.closest('.rz-navigation-item');
 
-    var active = !item.classList.contains('rz-navigation-item-active');
+    var active = defaultActive != undefined ? defaultActive : !item.classList.contains('rz-navigation-item-active');
 
     function toggle(active) {
       item.classList.toggle('rz-navigation-item-active', active);
@@ -1145,7 +1341,7 @@ window.Radzen = {
     var inside = false;
     ref.mouseMoveHandler = this.throttle(function (e) {
       if (inside) {
-        if (e.target.matches('.rz-chart-tooltip') || e.target.closest('.rz-chart-tooltip')) {
+        if (e.target.matches('.rz-chart-tooltip-content') || e.target.closest('.rz-chart-tooltip-content')) {
             return
         }
         var rect = ref.getBoundingClientRect();
@@ -1165,7 +1361,9 @@ window.Radzen = {
       var rect = ref.getBoundingClientRect();
       var x = e.clientX - rect.left;
       var y = e.clientY - rect.top;
-      instance.invokeMethodAsync('Click', x, y);
+      if (!e.target.closest('.rz-marker')) {
+        instance.invokeMethodAsync('Click', x, y);
+      }
     };
 
     ref.addEventListener('mouseenter', ref.mouseEnterHandler);
@@ -1198,13 +1396,15 @@ window.Radzen = {
   },
   innerHTML: function (ref, value) {
     if (value != undefined) {
-      ref.innerHTML = value;
+        if (ref != null) {
+            ref.innerHTML = value;
+        }
     } else {
       return ref.innerHTML;
     }
   },
   execCommand: function (ref, name, value) {
-    if (document.activeElement != ref) {
+    if (document.activeElement != ref && ref) {
       ref.focus();
     }
     document.execCommand(name, false, value);
@@ -1265,28 +1465,37 @@ window.Radzen = {
 
       if (item.kind == 'file') {
         e.preventDefault();
+        var file = item.getAsFile();
 
-        var xhr = new XMLHttpRequest();
-        var data = new FormData();
-        data.append("file", item.getAsFile());
-        xhr.onreadystatechange = function (e) {
-          if (xhr.readyState === XMLHttpRequest.DONE) {
-            var status = xhr.status;
-            if (status === 0 || (status >= 200 && status < 400)) {
-              var result = JSON.parse(xhr.responseText);
-              document.execCommand("insertHTML", false, '<img src="' + result.url + '">');
-            } else {
-              console.log(xhr.responseText);
+        if (uploadUrl) {
+            var xhr = new XMLHttpRequest();
+            var data = new FormData();
+            data.append("file", file);
+            xhr.onreadystatechange = function (e) {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    var status = xhr.status;
+                    if (status === 0 || (status >= 200 && status < 400)) {
+                        var result = JSON.parse(xhr.responseText);
+                        document.execCommand("insertHTML", false, '<img src="' + result.url + '">');
+                    } else {
+                        instance.invokeMethodAsync('OnError', xhr.responseText);
+                    }
+                }
             }
-          }
+            instance.invokeMethodAsync('GetHeaders').then(function (headers) {
+                xhr.open('POST', uploadUrl, true);
+                for (var name in headers) {
+                    xhr.setRequestHeader(name, headers[name]);
+                }
+                xhr.send(data);
+            });
+        } else {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                document.execCommand("insertHTML", false, '<img src="' + e.target.result + '">');
+            };
+            reader.readAsDataURL(file);
         }
-        instance.invokeMethodAsync('GetHeaders').then(function (headers) {
-            xhr.open('POST', uploadUrl, true);
-            for (var name in headers) {
-              xhr.setRequestHeader(name, headers[name]);
-            }
-            xhr.send(data);
-          });
       } else if (paste) {
         e.preventDefault();
         var data = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
@@ -1314,14 +1523,29 @@ window.Radzen = {
     var range = ref.range;
     if (range) {
       delete ref.range;
-      ref.focus();
+      if(ref) {
+          ref.focus();
+      }
       var selection = getSelection();
       selection.removeAllRanges();
       selection.addRange(range);
     }
   },
-  selectionAttributes: function (selector, attributes) {
+  selectionAttributes: function (selector, attributes, container) {
     var selection = getSelection();
+    var range = selection.rangeCount > 0 && selection.getRangeAt(0);
+    var parent = range && range.commonAncestorContainer;
+    var inside = false;
+    while (parent) {
+      if (parent == container) {
+        inside = true;
+        break;
+      }
+      parent = parent.parentNode;
+    }
+    if (!inside) {
+      return {};
+    }
     var target = selection.focusNode;
     var innerHTML;
     if (target) {
@@ -1333,7 +1557,7 @@ window.Radzen = {
           innerHTML = target.outerHTML;
         }
       }
-      if (target && !target.matches(selector)) {
+      if (target && target.matches && !target.matches(selector)) {
         target = target.closest(selector);
       }
     }
@@ -1386,7 +1610,7 @@ window.Radzen = {
     document.removeEventListener('touchend', ref.mouseUpHandler);
   },
   startColumnReorder: function(id) {
-      var el = document.getElementById(id);
+      var el = document.getElementById(id + '-drag');
       var cell = el.parentNode.parentNode;
       var visual = document.createElement("th");
       visual.className = cell.className + ' rz-column-draggable';
@@ -1432,7 +1656,7 @@ window.Radzen = {
       document.addEventListener('mousemove', Radzen[id + 'move']);
   },
   startColumnResize: function(id, grid, columnIndex, clientX) {
-      var el = document.getElementById(id);
+      var el = document.getElementById(id + '-resizer');
       var cell = el.parentNode.parentNode;
       var col = document.getElementById(id + '-col');
       var dataCol = document.getElementById(id + '-data-col');
@@ -1447,6 +1671,7 @@ window.Radzen = {
                       columnIndex,
                       cell.getBoundingClientRect().width
                   );
+                  el.style.width = null;
                   document.removeEventListener('mousemove', Radzen[el].mouseMoveHandler);
                   document.removeEventListener('mouseup', Radzen[el].mouseUpHandler);
                   document.removeEventListener('touchmove', Radzen[el].touchMoveHandler)
@@ -1477,6 +1702,7 @@ window.Radzen = {
               }
           }
       };
+      el.style.width = "100%";
       document.addEventListener('mousemove', Radzen[el].mouseMoveHandler);
       document.addEventListener('mouseup', Radzen[el].mouseUpHandler);
       document.addEventListener('touchmove', Radzen[el].touchMoveHandler, { passive: true })
@@ -1533,7 +1759,7 @@ window.Radzen = {
 
             if (value.endsWith("%"))
                 return totalLength*parseFloat(value)/100;
-            
+
             if (value.endsWith("px"))
                 return parseFloat(value);
 
@@ -1544,7 +1770,7 @@ window.Radzen = {
         maxValue=ensurevalue(maxValue);
         minNextValue=ensurevalue(minNextValue);
         maxNextValue=ensurevalue(maxNextValue);
-        
+
         Radzen[el] = {
             clientPos: clientPos,
             panePerc: parseFloat(panePerc),
@@ -1575,7 +1801,7 @@ window.Radzen = {
 
                     var length = (Radzen[el].paneLength -
                         (Radzen[el].clientPos - (isHOrientation ? e.clientX : e.clientY)));
-                    
+
                     if (length > spaceLength)
                         length = spaceLength;
 
@@ -1587,7 +1813,7 @@ window.Radzen = {
                         if (minNextValue && nextSpace < minNextValue) length = spaceLength-minNextValue;
                         if (maxNextValue && nextSpace > maxNextValue) length = spaceLength+maxNextValue;
                     }
-                    
+
                     var perc = length / Radzen[el].paneLength;
                     if (!isFinite(perc)) {
                         perc = 1;
@@ -1596,11 +1822,11 @@ window.Radzen = {
                             ? pane.getBoundingClientRect().width
                             : pane.getBoundingClientRect().height;
                     }
-                    
+
                     var newPerc =  Radzen[el].panePerc * perc;
                     if (newPerc < 0) newPerc = 0;
                     if (newPerc > 100) newPerc = 100;
-                    
+
                     pane.style.flexBasis = newPerc + '%';
                     if (paneNext)
                         paneNext.style.flexBasis = (spacePerc - newPerc) + '%';
@@ -1646,6 +1872,48 @@ window.Radzen = {
         if (Radzen.WaitingIntervalId != null) {
             clearInterval(Radzen.WaitingIntervalId);
             Radzen.WaitingIntervalId = null;
+        }
+    },
+    toggleDictation: function (componentRef, language) {
+        function start() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                return;
+            }
+
+            radzenRecognition = new SpeechRecognition();
+            radzenRecognition.componentRef = componentRef;
+            radzenRecognition.continuous = true;
+
+            if (language) {
+                radzenRecognition.lang = language;
+            }
+
+            radzenRecognition.onresult = function (event) {
+                if (event.results.length < 1) {
+                    return;
+                }
+
+                let current = event.results[event.results.length - 1][0]
+                let result = current.transcript;
+
+                componentRef.invokeMethodAsync("OnResult", result);
+            };
+            radzenRecognition.onend = function (event) {
+                componentRef.invokeMethodAsync("StopRecording");
+                radzenRecognition = null;
+            };
+            radzenRecognition.start();
+        }
+
+        if (radzenRecognition) {
+            if (radzenRecognition.componentRef._id != componentRef._id) {
+                radzenRecognition.addEventListener('end', start);
+            }
+            radzenRecognition.stop();
+        } else {
+            start();
         }
     }
 };

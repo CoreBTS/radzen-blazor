@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Components;
+using Radzen.Blazor;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Text;
@@ -35,7 +37,11 @@ namespace Radzen
                 Severity = message.Severity,
                 Summary = message.Summary,
                 Detail = message.Detail,
-                Style = message.Style
+                Style = message.Style,
+                Click = message.Click,
+                Close = message.Close,
+                CloseOnClick = message.CloseOnClick,
+                Payload = message.Payload
             };
 
             if (!Messages.Contains(newMessage))
@@ -51,14 +57,22 @@ namespace Radzen
         /// <param name="summary">The summary.</param>
         /// <param name="detail">The detail.</param>
         /// <param name="duration">The duration.</param>
-        public void Notify(NotificationSeverity severity = NotificationSeverity.Info, string summary = "", string detail = "", double duration = 3000)
+        /// <param name="click">The click event.</param>
+        /// <param name="closeOnClick">If true, then the notification will be closed when clicked on.</param>
+        /// <param name="payload">Used to store a custom payload that can be retreived later in the click event handler.</param>
+        /// <param name="close">Action to be executed on close.</param>
+        public void Notify(NotificationSeverity severity = NotificationSeverity.Info, string summary = "", string detail = "", double duration = 3000, Action<NotificationMessage> click = null, bool closeOnClick = false, object payload = null, Action<NotificationMessage> close = null)
         {
             var newMessage = new NotificationMessage()
             {
                 Duration = duration,
                 Severity = severity,
                 Summary = summary,
-                Detail = detail
+                Detail = detail,
+                Click = click,
+                Close = close,
+                CloseOnClick = closeOnClick,
+                Payload = payload
             };
 
             if (!Messages.Contains(newMessage))
@@ -98,5 +112,24 @@ namespace Radzen
         /// </summary>
         /// <value>The style.</value>
         public string Style { get; set; }
-    }
+        /// <summary>
+        /// Gets or sets the click event.
+        /// </summary>
+        /// <value>This event handler is called when the notification is clicked on.</value>
+        public Action<NotificationMessage> Click { get; set; }
+        /// <summary>
+        /// Get or set the event for when the notification is closed
+        /// </summary>
+        public Action<NotificationMessage> Close { get; set; }
+        /// <summary>
+        /// Gets or sets click on close action.
+        /// </summary>
+        /// <value>If true, then the notification will be closed when clicked on.</value>
+        public bool CloseOnClick { get; set; }
+        /// <summary>
+        /// Gets or sets notification payload.
+        /// </summary>
+        /// <value>Used to store a custom payload that can be retreived later in the click event handler.</value>
+        public object Payload { get; set; }
+   }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Rendering;
 using Microsoft.JSInterop;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components.Web;
+using System.Collections.Generic;
 
 namespace Radzen.Blazor
 {
@@ -17,6 +18,11 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenDropDown<TValue> : DropDownBase<TValue>
     {
+        /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the input.
+        /// </summary>
+        /// <value>The attributes.</value>
+        public IReadOnlyDictionary<string, object> InputAttributes { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether is read only.
@@ -31,6 +37,13 @@ namespace Radzen.Blazor
         /// <value>The value template.</value>
         [Parameter]
         public RenderFragment<dynamic> ValueTemplate { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the empty template.
+        /// </summary>
+        /// <value>The empty template.</value>
+        [Parameter]
+        public RenderFragment EmptyTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets a value indicating whether popup should open on focus. Set to <c>false</c> by default.
@@ -38,6 +51,20 @@ namespace Radzen.Blazor
         /// <value><c>true</c> if popup should open on focus; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool OpenOnFocus { get; set; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether search field need to be cleared after selection. Set to <c>false</c> by default.
+        /// </summary>
+        /// <value><c>true</c> if need to be cleared; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool ClearSearchAfterSelection { get; set; }
+
+        /// <summary>
+        /// Gets or sets the filter placeholder.
+        /// </summary>
+        /// <value>The filter placeholder.</value>
+        [Parameter]
+        public string FilterPlaceholder { get; set; } = string.Empty;
 
         private async Task OnFocus(Microsoft.AspNetCore.Components.Web.FocusEventArgs args)
         {
@@ -75,7 +102,7 @@ namespace Radzen.Blazor
 
             if (DisabledProperty != null)
             {
-                builder.AddAttribute(3, "Disabled", PropertyAccess.GetItemOrValueFromProperty(item, DisabledProperty));
+                builder.AddAttribute(3, "Disabled", GetItemOrValueFromProperty(item, DisabledProperty));
             }
 
             builder.SetKey(GetKey(item));
@@ -88,6 +115,13 @@ namespace Radzen.Blazor
         /// <value>The number of maximum selected labels.</value>
         [Parameter]
         public int MaxSelectedLabels { get; set; } = 4;
+
+        /// <summary>
+        /// Gets or sets the Popup height.
+        /// </summary>
+        /// <value>The number Popup height.</value>
+        [Parameter]
+        public string PopupStyle { get; set; } = "max-height:200px;overflow-x:hidden";
 
         /// <summary>
         /// Gets or sets a value indicating whether the selected items will be displayed as chips. Set to <c>false</c> by default.
@@ -158,7 +192,6 @@ namespace Radzen.Blazor
                     if (!Disabled)
                     {
                         await JSRuntime.InvokeVoidAsync("Radzen.preventArrows", Element);
-                        reload = true;
                     }
 
                     if (reload)
@@ -188,6 +221,14 @@ namespace Radzen.Blazor
                 if (!Multiple && !isFromKey)
                 {
                     await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+                }
+                
+                if (ClearSearchAfterSelection)
+                {
+                    await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", search, string.Empty);
+                    searchText = null;
+                    await SearchTextChanged.InvokeAsync(searchText);
+                    await OnFilter(null);
                 }
 
                 await SelectItem(item);

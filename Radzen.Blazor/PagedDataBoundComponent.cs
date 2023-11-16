@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
@@ -36,6 +37,12 @@ namespace Radzen
         public HorizontalAlign PagerHorizontalAlign { get; set; } = HorizontalAlign.Justify;
 
         /// <summary>
+        /// Gets or sets a value indicating pager density.
+        /// </summary>
+        [Parameter]
+        public Density Density { get; set; } = Density.Default;
+
+        /// <summary>
         /// Gets or sets a value indicating whether paging is allowed. Set to <c>false</c> by default.
         /// </summary>
         /// <value><c>true</c> if paging is allowed; otherwise, <c>false</c>.</value>
@@ -56,8 +63,22 @@ namespace Radzen
             }
             set
             {
-                _PageSize = value;
+                if (_PageSize != value)
+                {
+                    _PageSize = value;
+                    InvokeAsync(() => OnPageSizeChanged(value));
+                }
             }
+        }
+
+        internal int GetPageSize()
+        {
+            return _PageSize;
+        }
+
+        internal void SetPageSize(int value)
+        {
+            _PageSize = value;
         }
 
         /// <summary>
@@ -87,6 +108,13 @@ namespace Radzen
         public RenderFragment<T> Template { get; set; }
 
         /// <summary>
+        /// Gets or sets the loading template.
+        /// </summary>
+        /// <value>The loading template.</value>
+        [Parameter]
+        public RenderFragment LoadingTemplate { get; set; }
+
+        /// <summary>
         /// The data
         /// </summary>
         IEnumerable<T> _data;
@@ -107,9 +135,34 @@ namespace Radzen
                 if (_data != value)
                 {
                     _data = value;
+
+                    if (_data != null && _data is INotifyCollectionChanged)
+                    {
+                        ((INotifyCollectionChanged)_data).CollectionChanged += OnCollectionChanged;
+                    }
+
                     OnDataChanged();
                     StateHasChanged();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Called when INotifyCollectionChanged CollectionChanged is raised.
+        /// </summary>
+        protected virtual void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs args)
+        {
+
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            base.Dispose();
+
+            if (_data != null && _data is INotifyCollectionChanged)
+            {
+                ((INotifyCollectionChanged)_data).CollectionChanged -= OnCollectionChanged;
             }
         }
 
@@ -142,9 +195,66 @@ namespace Radzen
         public string PagingSummaryFormat { get; set; } = "Page {0} of {1} ({2} items)";
 
         /// <summary>
-        /// The view
+        /// Gets or sets the pager's first page button's title attribute.
         /// </summary>
-        protected IQueryable<T> _view = null;
+        [Parameter]
+        public string FirstPageTitle { get; set; } = "First page.";
+
+        /// <summary>
+        /// Gets or sets the pager's first page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string FirstPageAriaLabel { get; set; } = "Go to first page.";
+
+        /// <summary>
+        /// Gets or sets the pager's previous page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string PrevPageTitle { get; set; } = "Previous page";
+
+        /// <summary>
+        /// Gets or sets the pager's previous page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string PrevPageAriaLabel { get; set; } = "Go to previous page.";
+
+        /// <summary>
+        /// Gets or sets the pager's last page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string LastPageTitle { get; set; } = "Last page";
+
+        /// <summary>
+        /// Gets or sets the pager's last page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string LastPageAriaLabel { get; set; } = "Go to last page.";
+
+        /// <summary>
+        /// Gets or sets the pager's next page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string NextPageTitle { get; set; } = "Next page";
+
+        /// <summary>
+        /// Gets or sets the pager's next page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string NextPageAriaLabel { get; set; } = "Go to next page.";
+        
+        /// <summary>
+        /// Gets or sets the pager's numeric page number buttons' title attributes.
+        /// </summary>
+        [Parameter]
+        public string PageTitleFormat { get; set; } = "Page {0}";
+        
+        /// <summary>
+        /// Gets or sets the pager's numeric page number buttons' aria-label attributes.
+        /// </summary>
+        [Parameter]
+        public string PageAriaLabelFormat { get; set; } = "Go to page {0}.";
+        
+        internal IQueryable<T> _view = null;
         /// <summary>
         /// Gets the paged view.
         /// </summary>
@@ -311,16 +421,19 @@ namespace Radzen
             await InvokeAsync(Reload);
         }
 
-        int? pageSize;
+        internal int? pageSize;
 
         /// <summary>
         /// Called when [page size changed].
         /// </summary>
         /// <param name="value">The value.</param>
-        protected async Task OnPageSizeChanged(int value)
+        protected virtual async Task OnPageSizeChanged(int value)
         {
-            pageSize = value;
-            await InvokeAsync(Reload);
+            if (pageSize != value && !this.firstRender)
+            {
+                pageSize = value;
+                await InvokeAsync(Reload);
+            }
         }
 
         /// <summary>

@@ -1,6 +1,15 @@
-<button tabindex="-1" @onclick=@OnClick class=@Class disabled=@(Editor.Disabled || Disabled) @onmousedown=@Empty @onmousedown:preventDefault @onclick:preventDefault title=@Title>
-    <i class="rzi">@Icon</i>
+@if (PreventBlur)
+{
+<button type="button" tabindex="-1" @onclick=@OnClick class=@Class disabled=@(Editor.Disabled || Disabled || !EnabledModes.HasFlag(Editor.GetMode())) @onmousedown=@Empty @onmousedown:preventDefault @onclick:preventDefault title=@Title>
+    <i class="rzi" style="@(!string.IsNullOrEmpty(IconColor) ? $"color:{IconColor}" : null)">@Icon</i>
 </button>
+}
+else
+{
+<button type="button" tabindex="-1" @onclick=@OnClick class=@Class disabled=@(Editor.Disabled || Disabled || !EnabledModes.HasFlag(Editor.GetMode())) title=@Title>
+    <i class="rzi" style="@(!string.IsNullOrEmpty(IconColor) ? $"color:{IconColor}" : null)">@Icon</i>
+</button>
+}
 @code {
     [CascadingParameter]
     public RadzenHtmlEditor Editor { get; set; }
@@ -12,10 +21,23 @@
     public bool Disabled { get; set; }
 
     [Parameter]
+    public bool PreventBlur { get; set; } = true;
+
+    [Parameter]
     public bool Selected { get; set; }
 
     [Parameter]
     public string Icon { get; set; }
+
+    /// <summary>
+    /// Gets or sets the icon color.
+    /// </summary>
+    /// <value>The icon color.</value>
+    [Parameter]
+    public string IconColor { get; set; }
+
+    [Parameter]
+    public HtmlEditorMode EnabledModes { get; set; } = HtmlEditorMode.Design;
 
     [Parameter]
     public EventCallback Click { get; set; }
@@ -31,7 +53,7 @@
         {
             var classList = new List<string>() { "rz-html-editor-button" };
 
-            if (Selected && !Editor.Disabled)
+            if (Selected && !Editor.Disabled && EnabledModes.HasFlag(Editor.GetMode()))
             {
                 classList.Add("rz-selected");
             }

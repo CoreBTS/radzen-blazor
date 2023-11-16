@@ -35,6 +35,12 @@ namespace Radzen.Blazor
     public partial class RadzenUpload : RadzenComponent
     {
         /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the input.
+        /// </summary>
+        /// <value>The attributes.</value>
+        public IReadOnlyDictionary<string, object> InputAttributes { get; set; }
+
+        /// <summary>
         /// Gets file input reference.
         /// </summary>
         protected ElementReference fileUpload;
@@ -74,6 +80,13 @@ namespace Radzen.Blazor
         public string Url { get; set; }
 
         /// <summary>
+        /// Gets or sets the parameter name. If not set 'file' parameter name will be used for single file and 'files' for multiple files.
+        /// </summary>
+        /// <value>The parameter name.</value>
+        [Parameter]
+        public string ParameterName { get; set; }
+
+        /// <summary>
         /// Gets or sets the accepted MIME types.
         /// </summary>
         /// <value>The accepted MIME types.</value>
@@ -95,6 +108,13 @@ namespace Radzen.Blazor
         public string Icon { get; set; }
 
         /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string IconColor { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this <see cref="RadzenUpload"/> is disabled.
         /// </summary>
         /// <value><c>true</c> if disabled; otherwise, <c>false</c>.</value>
@@ -112,7 +132,7 @@ namespace Radzen.Blazor
         /// Gets the button class list.
         /// </summary>
         /// <value>The button class list.</value>
-        ClassList ButtonClassList => ClassList.Create("rz-button rz-button-icon-only btn-light")
+        ClassList ButtonClassList => ClassList.Create("rz-button rz-button-icon-only rz-light")
                                               .AddDisabled(Disabled);
 
         /// <summary>
@@ -127,7 +147,7 @@ namespace Radzen.Blazor
         /// </summary>
         public async Task Upload()
         {
-            await JSRuntime.InvokeAsync<string>("Radzen.upload", fileUpload, Url, Multiple);
+            await JSRuntime.InvokeAsync<string>("Radzen.upload", fileUpload, Url, Multiple, false, ParameterName);
         }
 
         readonly IDictionary<string, string> headers = new Dictionary<string, string>();

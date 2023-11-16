@@ -20,6 +20,11 @@ namespace Radzen.Blazor
     /// </example>
     public partial class RadzenFileInput<TValue> : FormComponent<TValue>
     {
+        /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the input.
+        /// </summary>
+        /// <value>The attributes.</value>
+        public IReadOnlyDictionary<string, object> InputAttributes { get; set; }
 
         /// <summary>
         /// Gets or sets the choose button text.
@@ -39,13 +44,13 @@ namespace Radzen.Blazor
         /// Gets the choose class list.
         /// </summary>
         /// <value>The choose class list.</value>
-        ClassList ChooseClassList => ClassList.Create("rz-fileupload-choose rz-button btn-secondary")
+        ClassList ChooseClassList => ClassList.Create("rz-fileupload-choose rz-button rz-secondary")
                                               .AddDisabled(Disabled);
         /// <summary>
         /// Gets the button class list.
         /// </summary>
         /// <value>The button class list.</value>
-        ClassList ButtonClassList => ClassList.Create("rz-button rz-button-icon-only btn-light")
+        ClassList ButtonClassList => ClassList.Create("rz-button rz-button-icon-only rz-light")
                                               .AddDisabled(Disabled);
 
         /// <inheritdoc />

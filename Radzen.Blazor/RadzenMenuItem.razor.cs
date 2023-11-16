@@ -1,6 +1,9 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
+using Microsoft.AspNetCore.Components.Web;
 
 namespace Radzen.Blazor
 {
@@ -12,8 +15,15 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return "rz-navigation-item";
+            return $"rz-navigation-item{(Disabled ? " rz-state-disabled" : "")}";
         }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is disabled.
+        /// </summary>
+        /// <value><c>true</c> if this instance is disabled; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool Disabled { get; set; }
 
         /// <summary>
         /// Gets or sets the target.
@@ -51,11 +61,25 @@ namespace Radzen.Blazor
         public string Icon { get; set; }
 
         /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string IconColor { get; set; }
+
+        /// <summary>
         /// Gets or sets the image.
         /// </summary>
         /// <value>The image.</value>
         [Parameter]
         public string Image { get; set; }
+
+        /// <summary>
+        /// Gets or sets the navigation link match.
+        /// </summary>
+        /// <value>The navigation link match.</value>
+        [Parameter]
+        public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
 
         /// <summary>
         /// Gets or sets the template.
@@ -91,10 +115,10 @@ namespace Radzen.Blazor
         /// <param name="args">The <see cref="MouseEventArgs"/> instance containing the event data.</param>
         public async Task OnClick(MouseEventArgs args)
         {
-            if (Parent != null)
+            if (Parent != null && !Disabled)
             {
-                var eventArgs = new MenuItemEventArgs 
-                { 
+                var eventArgs = new MenuItemEventArgs
+                {
                     Text = Text,
                     Path = Path,
                     Value = Value,
@@ -118,6 +142,25 @@ namespace Radzen.Blazor
                     await Click.InvokeAsync(eventArgs);
                 }
             }
+        }
+
+        Dictionary<string, object> getOpenEvents()
+        {
+            var events = new Dictionary<string, object>();
+
+            if (!Disabled)
+            {
+                if (Parent.ClickToOpen || ChildContent != null)
+                {
+                    events.Add("onclick", "Radzen.toggleMenuItem(this)");
+                }
+                else
+                {
+                    events.Add("onclick", "Radzen.toggleMenuItem(this, event, false)");
+                }
+            }
+
+            return events;
         }
     }
 }

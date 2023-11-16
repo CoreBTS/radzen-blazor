@@ -12,12 +12,12 @@ namespace Radzen.Blazor
     /// &lt;RadzenProgressBar @bind-Value="@value" Max="200" /&gt;
     /// </code>
     /// </example>
-    public partial class RadzenProgressBar : RadzenComponent
+    public partial class RadzenProgressBar
     {
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            var classList=new List<string>()
+            var classList = new List<string>()
             {
                 "rz-progressbar"
             };
@@ -26,16 +26,23 @@ namespace Radzen.Blazor
             {
                 case ProgressBarMode.Determinate:
                     classList.Add("rz-progressbar-determinate");
-                    classList.Add($"rz-progressbar-determinate-{ProgressBarStyle.ToString().ToLowerInvariant()}");
                     break;
                 case ProgressBarMode.Indeterminate:
                     classList.Add("rz-progressbar-indeterminate");
-                    classList.Add($"rz-progressbar-indeterminate-{ProgressBarStyle.ToString().ToLowerInvariant()}");
                     break;
             }
+            
+            classList.Add($"rz-progressbar-{ProgressBarStyle.ToString().ToLowerInvariant()}");
 
             return string.Join(" ", classList);
         }
+
+        /// <summary>
+        /// Gets or sets the template.
+        /// </summary>
+        /// <value>The  template.</value>
+        [Parameter]
+        public RenderFragment Template { get; set; }
 
         /// <summary>
         /// Gets or sets the mode.
@@ -57,6 +64,13 @@ namespace Radzen.Blazor
         /// <value>The value.</value>
         [Parameter]
         public double Value { get; set; }
+
+        /// <summary>
+        /// Determines the minimum value.
+        /// </summary>
+        /// <value>The minimum value.</value>
+        [Parameter]
+        public double Min { get; set; } = 0;
 
         /// <summary>
         /// Determines the maximum value.
@@ -85,5 +99,10 @@ namespace Radzen.Blazor
         /// <value>The progress bar style.</value>
         [Parameter]
         public ProgressBarStyle ProgressBarStyle { get; set; }
+
+        /// <summary>
+        /// Progress in range from 0 to 1.
+        /// </summary>
+        protected double NormalizedValue => Math.Min(Math.Max((Value - Min) / (Max - Min), 0), 1);
     }
-} 
+}

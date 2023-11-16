@@ -194,6 +194,34 @@ namespace Radzen.Blazor.Tests
         }
 
         [Fact]
+        public void Numeric_Renders_TypedAutoCompleteParameter()
+        {
+            using var ctx = new TestContext();
+
+            var component = ctx.RenderComponent<RadzenNumeric<double>>();
+
+            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, false));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.On));
+
+            Assert.Contains(@$"autocomplete=""off""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.Off));
+
+            Assert.Contains(@$"autocomplete=""off""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.BdayMonth));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.BdayMonth.GetAutoCompleteValue()}""", component.Markup);
+
+            component.SetParametersAndRender(parameters => parameters.Add<bool>(p => p.AutoComplete, true));
+            component.SetParametersAndRender(parameters => parameters.Add<AutoCompleteType>(p => p.AutoCompleteType, AutoCompleteType.BdayYear));
+
+            Assert.Contains(@$"autocomplete=""{AutoCompleteType.BdayYear.GetAutoCompleteValue()}""", component.Markup);
+        }
+
+        [Fact]
         public void Numeric_Raises_ChangedEvent()
         {
             using var ctx = new TestContext();
@@ -349,6 +377,37 @@ namespace Radzen.Blazor.Tests
             component.Render();
 
             Assert.Contains($" value=\"{valueToTest.ToString(format)}\"", component.Markup);
+        }
+        
+        public static TheoryData<decimal, decimal> NumericFormatterPreservesLeadingZerosData =>
+            new()
+            {
+                { 10.000m, 100.000m },
+                { 100.000m, 10.000m }
+            };
+        
+        [Theory]
+        [MemberData(nameof(NumericFormatterPreservesLeadingZerosData))]
+        public void Numeric_Formatter_PreservesLeadingZeros(decimal oldValue, decimal newValue)
+        {
+            using var ctx = new TestContext();
+            ctx.JSInterop.Mode = JSRuntimeMode.Loose;
+            ctx.JSInterop.SetupModule("_content/Radzen.Blazor/Radzen.Blazor.js");
+
+            string format = "0.000";
+
+            var component = ctx.RenderComponent<RadzenNumeric<decimal>>(
+                ComponentParameter.CreateParameter(nameof(RadzenNumeric<decimal>.Format), format),
+                ComponentParameter.CreateParameter(nameof(RadzenNumeric<decimal>.Value), oldValue)
+            );
+
+            component.Render();
+            
+            Assert.Contains($" value=\"{oldValue.ToString(format)}\"", component.Markup);
+
+            component.Find("input").Change(newValue);
+            
+            Assert.Contains($" value=\"{newValue.ToString(format)}\"", component.Markup);
         }
     }
 }

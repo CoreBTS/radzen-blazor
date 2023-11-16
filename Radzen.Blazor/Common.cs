@@ -1,19 +1,396 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.DependencyInjection;
 using Radzen.Blazor;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
+using System.Linq.Dynamic.Core.Parser;
 using System.Linq.Expressions;
+using System.Reflection;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Radzen
 {
+    /// <summary>
+    /// Colors.
+    /// </summary>
+    public static class Colors
+    {
+        /// <summary>
+        /// Primary.
+        /// </summary>
+        public const string Primary = "var(--rz-primary)";
+
+        /// <summary>
+        /// Primary lighter.
+        /// </summary>
+        public const string PrimaryLighter = "var(--rz-primary-lighter)";
+
+        /// <summary>
+        /// Primary light.
+        /// </summary>
+        public const string PrimaryLight = "var(--rz-primary-light)";
+
+        /// <summary>
+        /// Primary dark.
+        /// </summary>
+        public const string PrimaryDark = "var(--rz-primary-dark)";
+
+        /// <summary>
+        /// Primary darker.
+        /// </summary>
+        public const string PrimaryDarker = "var(--rz-primary-darker)";
+
+        /// <summary>
+        /// Secondary.
+        /// </summary>
+        public const string Secondary = "var(--rz-secondary)";
+
+        /// <summary>
+        /// Secondary lighter.
+        /// </summary>
+        public const string SecondaryLighter = "var(--rz-secondary-lighter)";
+
+        /// <summary>
+        /// Secondary light.
+        /// </summary>
+        public const string SecondaryLight = "var(--rz-secondary-light)";
+
+        /// <summary>
+        /// Secondary dark.
+        /// </summary>
+        public const string SecondaryDark = "var(--rz-secondary-dark)";
+
+        /// <summary>
+        /// Secondary darker.
+        /// </summary>
+        public const string SecondaryDarker = "var(--rz-secondary-darker)";
+
+        /// <summary>
+        /// Info.
+        /// </summary>
+        public const string Info = "var(--rz-info)";
+
+        /// <summary>
+        /// Info lighter.
+        /// </summary>
+        public const string InfoLighter = "var(--rz-info-lighter)";
+
+        /// <summary>
+        /// Info light.
+        /// </summary>
+        public const string InfoLight = "var(--rz-info-light)";
+
+        /// <summary>
+        /// Info dark.
+        /// </summary>
+        public const string InfoDark = "var(--rz-info-dark)";
+
+        /// <summary>
+        /// Info darker.
+        /// </summary>
+        public const string InfoDarker = "var(--rz-info-darker)";
+
+        /// <summary>
+        /// Success.
+        /// </summary>
+        public const string Success = "var(--rz-success)";
+
+        /// <summary>
+        /// Success lighter.
+        /// </summary>
+        public const string SuccessLighter = "var(--rz-success-lighter)";
+
+        /// <summary>
+        /// Success light.
+        /// </summary>
+        public const string SuccessLight = "var(--rz-success-light)";
+
+        /// <summary>
+        /// Success dark.
+        /// </summary>
+        public const string SuccessDark = "var(--rz-success-dark)";
+
+        /// <summary>
+        /// Success darker.
+        /// </summary>
+        public const string SuccessDarker = "var(--rz-success-darker)";
+
+        /// <summary>
+        /// Warning.
+        /// </summary>
+        public const string Warning = "var(--rz-warning)";
+
+        /// <summary>
+        /// Warning lighter.
+        /// </summary>
+        public const string WarningLighter = "var(--rz-warning-lighter)";
+
+        /// <summary>
+        /// Warning light.
+        /// </summary>
+        public const string WarningLight = "var(--rz-warning-light)";
+
+        /// <summary>
+        /// Warning dark.
+        /// </summary>
+        public const string WarningDark = "var(--rz-warning-dark)";
+
+        /// <summary>
+        /// Warning darker.
+        /// </summary>
+        public const string WarningDarker = "var(--rz-warning-darker)";
+
+        /// <summary>
+        /// Danger.
+        /// </summary>
+        public const string Danger = "var(--rz-danger)";
+
+        /// <summary>
+        /// Danger lighter.
+        /// </summary>
+        public const string DangerLighter = "var(--rz-danger-lighter)";
+
+        /// <summary>
+        /// Danger light.
+        /// </summary>
+        public const string DangerLight = "var(--rz-danger-light)";
+
+        /// <summary>
+        /// Danger dark.
+        /// </summary>
+        public const string DangerDark = "var(--rz-danger-dark)";
+
+        /// <summary>
+        /// Danger darker.
+        /// </summary>
+        public const string DangerDarker = "var(--rz-danger-darker)";
+
+        /// <summary>
+        /// White.
+        /// </summary>
+        public const string White = "var(--rz-white)";
+
+        /// <summary>
+        /// Black.
+        /// </summary>
+        public const string Black = "var(--rz-black)";
+
+        /// <summary>
+        /// Base 50.
+        /// </summary>
+        public const string Base50 = "var(--rz-base-50)";
+
+        /// <summary>
+        /// Base 100.
+        /// </summary>
+        public const string Base100 = "var(--rz-base-100)";
+
+        /// <summary>
+        /// Base 200.
+        /// </summary>
+        public const string Base200 = "var(--rz-base-200)";
+
+        /// <summary>
+        /// Base 300.
+        /// </summary>
+        public const string Base300 = "var(--rz-base-300)";
+
+        /// <summary>
+        /// Base 400.
+        /// </summary>
+        public const string Base400 = "var(--rz-base-400)";
+
+        /// <summary>
+        /// Base 500.
+        /// </summary>
+        public const string Base500 = "var(--rz-base-500)";
+
+        /// <summary>
+        /// Base 600.
+        /// </summary>
+        public const string Base600 = "var(--rz-base-600)";
+
+        /// <summary>
+        /// Base 700.
+        /// </summary>
+        public const string Base700 = "var(--rz-base-700)";
+
+        /// <summary>
+        /// Base 800.
+        /// </summary>
+        public const string Base800 = "var(--rz-base-800)";
+
+        /// <summary>
+        /// Base 900.
+        /// </summary>
+        public const string Base900 = "var(--rz-base-900)";
+
+        /// <summary>
+        /// Series1.
+        /// </summary>
+        public const string Series1 = "var(--rz-series-1)";
+
+        /// <summary>
+        /// Series2.
+        /// </summary>
+        public const string Series2 = "var(--rz-series-2)";
+
+        /// <summary>
+        /// Series3.
+        /// </summary>
+        public const string Series3 = "var(--rz-series-3)";
+
+        /// <summary>
+        /// Series4.
+        /// </summary>
+        public const string Series4 = "var(--rz-series-4)";
+
+        /// <summary>
+        /// Series5.
+        /// </summary>
+        public const string Series5 = "var(--rz-series-5)";
+
+        /// <summary>
+        /// Series6.
+        /// </summary>
+        public const string Series6 = "var(--rz-series-6)";
+
+        /// <summary>
+        /// Series7.
+        /// </summary>
+        public const string Series7 = "var(--rz-series-7)";
+
+        /// <summary>
+        /// Series8.
+        /// </summary>
+        public const string Series8 = "var(--rz-series-8)";
+    }
+
+    /// <summary>
+    /// Class with IServiceCollection extensions methods.
+    /// </summary>
+    public static class ServiceCollectionExtensions
+    {
+        /// <summary>
+        /// Add Radzen Blazor components services
+        /// </summary>
+        /// <param name="services">Service collection</param>
+        public static IServiceCollection AddRadzenComponents(this IServiceCollection services)
+        {
+            services.AddScoped<DialogService>();
+            services.AddScoped<NotificationService>();
+            services.AddScoped<TooltipService>();
+            services.AddScoped<ContextMenuService>();
+
+            return services;
+        }
+    }
+
+    /// <summary>
+    /// Html editor mode (Rendered or Raw). Also used for toolbar buttons to enable/disable according to mode.
+    /// </summary>
+    [Flags]
+    public enum HtmlEditorMode
+    {
+        /// <summary>
+        /// The editor is in Design mode.
+        /// </summary>
+        Design = 1,
+        /// <summary>
+        /// The editor is in Source mode.
+        /// </summary>
+        Source = 2,
+    }
+
+    /// <summary>
+    /// DataGrid settings class used to Save/Load settings.
+    /// </summary>
+    public class DataGridSettings
+    {
+        /// <summary>
+        /// Columns.
+        /// </summary>
+        public IEnumerable<DataGridColumnSettings> Columns { get; set; }
+        /// <summary>
+        /// Groups.
+        /// </summary>
+        public IEnumerable<GroupDescriptor> Groups { get; set; }
+        /// <summary>
+        /// CurrentPage.
+        /// </summary>
+        public int? CurrentPage { get; set; }
+        /// <summary>
+        /// PageSize.
+        /// </summary>
+        public int? PageSize { get; set; }
+    }
+
+    /// <summary>
+    /// DataGrid column settings class used to Save/Load settings.
+    /// </summary>
+    public class DataGridColumnSettings
+    {
+        /// <summary>
+        /// Property.
+        /// </summary>
+        public string UniqueID { get; set; }
+
+        /// <summary>
+        /// Property.
+        /// </summary>
+        public string Property { get; set; }
+        /// <summary>
+        /// Visible.
+        /// </summary>
+        public bool Visible { get; set; }
+        /// <summary>
+        /// Width.
+        /// </summary>
+        public string Width { get; set; }
+        /// <summary>
+        /// OrderIndex.
+        /// </summary>
+        public int? OrderIndex { get; set; }
+        /// <summary>
+        /// SortOrder.
+        /// </summary>
+        public SortOrder? SortOrder { get; set; }
+        /// <summary>
+        /// SortIndex.
+        /// </summary>
+        public int? SortIndex { get; set; }
+        /// <summary>
+        /// FilterValue.
+        /// </summary>
+        public object FilterValue { get; set; }
+        /// <summary>
+        /// FilterOperator.
+        /// </summary>
+        public FilterOperator FilterOperator { get; set; }
+        /// <summary>
+        /// SecondFilterValue.
+        /// </summary>
+        public object SecondFilterValue { get; set; }
+        /// <summary>
+        /// SecondFilterOperator.
+        /// </summary>
+        public FilterOperator SecondFilterOperator { get; set; }
+
+        /// <summary>
+        /// LogicalFilterOperator.
+        /// </summary>
+        public LogicalFilterOperator LogicalFilterOperator { get; set; }
+    }
+#if NET7_0_OR_GREATER
+#else
     /// <summary>
     /// Enables "onmouseenter" and "onmouseleave" event support in Blazor. Not for public use.
     /// </summary>
@@ -22,9 +399,9 @@ namespace Radzen
     public static class EventHandlers
     {
     }
-
+#endif
     /// <summary>
-    /// Represents the common <see cref="RadzenSelectBar{TValue}" /> API used by 
+    /// Represents the common <see cref="RadzenSelectBar{TValue}" /> API used by
     /// its items. Injected as a cascading property in <see cref="RadzenSelectBarItem" />.
     /// </summary>
     public interface IRadzenSelectBar
@@ -40,6 +417,11 @@ namespace Radzen
         /// </summary>
         /// <param name="item">The item.</param>
         void RemoveItem(RadzenSelectBarItem item);
+
+        /// <summary>
+        /// Refreshes this instance.
+        /// </summary>
+        void Refresh();
     }
 
     /// <summary>
@@ -73,7 +455,7 @@ namespace Radzen
     /// <summary>
     /// A class that represents a <see cref="RadzenGoogleMap" /> position.
     /// </summary>
-    public class GoogleMapPosition
+    public class GoogleMapPosition : IEquatable<GoogleMapPosition>
     {
         /// <summary>
         /// Gets or sets the latitude.
@@ -85,6 +467,29 @@ namespace Radzen
         /// </summary>
         /// <value>The longitude.</value>
         public double Lng { get; set; }
+
+        /// <inheritdoc />
+        public bool Equals(GoogleMapPosition other)
+        {
+            if (other != null)
+            {
+                return this.Lat == other.Lat && this.Lng == other.Lng;
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc />
+        public override bool Equals(object obj)
+        {
+            return this.Equals(obj as GoogleMapPosition);
+        }
+
+        /// <inheritdoc />
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
+        }
     }
 
     /// <summary>
@@ -211,6 +616,17 @@ namespace Radzen
         /// </summary>
         /// <value><c>true</c> if this is the first time; otherwise, <c>false</c>.</value>
         public bool FirstRender { get; internal set; }
+    }
+
+    /// <summary>
+    /// Supplies information about a <see cref="RadzenDataGrid{TItem}.LoadSettings" /> event that is being raised.
+    /// </summary>
+    public class DataGridLoadSettingsEventArgs
+    {
+        /// <summary>
+        /// Gets or sets the settings.
+        /// </summary>
+        public DataGridSettings Settings { get; set; }
     }
 
     /// <summary>
@@ -363,6 +779,16 @@ namespace Radzen
         /// <value>The filter.</value>
         public string Filter { get; set; }
         /// <summary>
+        /// Gets the filter expression as a collection of filter descriptors.
+        /// </summary>
+        /// <value>The filter parameters.</value>
+        public IEnumerable<FilterDescriptor> Filters { get; set; }
+        /// <summary>
+        /// Gets the sort expression as a collection of sort descriptors.
+        /// </summary>
+        /// <value>The sorts.</value>
+        public IEnumerable<SortDescriptor> Sorts { get; set; }
+        /// <summary>
         /// Gets or sets the filter parameters.
         /// </summary>
         /// <value>The filter parameters.</value>
@@ -437,6 +863,36 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies component density.
+    /// </summary>
+    public enum Density
+    {
+        /// <summary>
+        /// The default density.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// А high density compact mode.
+        /// </summary>
+        Compact
+    }
+
+    /// <summary>
+    /// Specifies the ways a component renders its popup.
+    /// </summary>
+    public enum PopupRenderMode
+    {
+        /// <summary>
+        /// The component renders its popup on-demand.
+        /// </summary>
+        OnDemand,
+        /// <summary>
+        /// The component renders its popup initially.
+        /// </summary>
+        Initial
+    }
+
+    /// <summary>
     /// Specifies the ways a <see cref="RadzenTabs" /> component renders its items.
     /// </summary>
     public enum TabRenderMode
@@ -480,6 +936,45 @@ namespace Radzen
         /// The RadzenTabs titles are displayed at the right side of the component.
         /// </summary>
         Right
+    }
+
+    /// <summary>
+    /// Specifies the ways a <see cref="RadzenTimeline" /> component renders line and content items.
+    /// </summary>
+    public enum LinePosition
+    {
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the center of the component.
+        /// </summary>
+        Center,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the center of the component with alternating content position.
+        /// </summary>
+        Alternate,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the start of the component.
+        /// </summary>
+        Start,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the end of the component.
+        /// </summary>
+        End,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the left side of the component.
+        /// </summary>
+        Left,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the right side of the component.
+        /// </summary>
+        Right,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the top of the component.
+        /// </summary>
+        Top,
+        /// <summary>
+        /// The RadzenTimeline line is displayed at the bottom of the component.
+        /// </summary>
+        Bottom
     }
 
     /// <summary>
@@ -547,6 +1042,33 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies the grid lines of <see cref="RadzenDataGrid{TItem}" />.
+    /// </summary>
+    public enum DataGridGridLines
+    {
+        /// <summary>
+        /// Theme default.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// Both horizontal and vertical grid lines.
+        /// </summary>
+        Both,
+        /// <summary>
+        /// No grid lines.
+        /// </summary>
+        None,
+        /// <summary>
+        /// Horizontal grid lines.
+        /// </summary>
+        Horizontal,
+        /// <summary>
+        /// Vertical grid lines.
+        /// </summary>
+        Vertical
+    }
+
+    /// <summary>
     /// Specifies the severity of a <see cref="RadzenNotification" />. Severity changes the visual styling of the RadzenNotification (icon and background color).
     /// </summary>
     public enum NotificationSeverity
@@ -560,7 +1082,7 @@ namespace Radzen
         /// </summary>
         Info,
         /// <summary>
-        /// Represents a success. 
+        /// Represents a success.
         /// </summary>
         Success,
         /// <summary>
@@ -570,24 +1092,9 @@ namespace Radzen
     }
 
     /// <summary>
-    /// Specifies the behavior of <see cref="RadzenProgressBar" />.
+    /// Specifies the display style or severity of a <see cref="RadzenAlert" />. Affects the visual styling of RadzenAlert (background and text color).
     /// </summary>
-    public enum ProgressBarMode
-    {
-        /// <summary>
-        /// RadzenProgressBar displays its value as a percentage range (0 to 100).
-        /// </summary>
-        Determinate,
-        /// <summary>
-        /// RadzenProgressBar displays continuous animation. 
-        /// </summary>
-        Indeterminate
-    }
-
-    /// <summary>
-    /// Specifies the display style of a <see cref="RadzenProgressBar" />. Affects the visual styling of RadzenProgressBar (background and text color).
-    /// </summary>
-    public enum ProgressBarStyle
+    public enum AlertStyle
     {
         /// <summary>
         /// Primary styling. Similar to primary buttons.
@@ -601,6 +1108,14 @@ namespace Radzen
         /// Light styling. Similar to light buttons.
         /// </summary>
         Light,
+        /// <summary>
+        /// Dark styling. Similar to dark buttons.
+        /// </summary>
+        Base,
+        /// <summary>
+        /// The default styling.
+        /// </summary>
+        Dark,
         /// <summary>
         /// Success styling.
         /// </summary>
@@ -620,6 +1135,172 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Specifies the size of a <see cref="RadzenAlert" />.
+    /// </summary>
+    public enum AlertSize
+    {
+        /// <summary>
+        /// The smallest alert.
+        /// </summary>
+        ExtraSmall,
+        /// <summary>
+        /// A alert smaller than the default.
+        /// </summary>
+        Small,
+        /// <summary>
+        /// The default size of an alert.
+        /// </summary>
+        Medium,
+        /// <summary>
+        /// An alert larger than the default.
+        /// </summary>
+        Large
+    }
+
+    /// <summary>
+    /// Specifies the size of a point in <see cref="RadzenTimelineItem" />.
+    /// </summary>
+    public enum PointSize
+    {
+        /// <summary>
+        /// The smallest.
+        /// </summary>
+        ExtraSmall,
+        /// <summary>
+        /// Smaller than the default.
+        /// </summary>
+        Small,
+        /// <summary>
+        /// The default size.
+        /// </summary>
+        Medium,
+        /// <summary>
+        /// Larger than the default.
+        /// </summary>
+        Large
+    }
+
+    /// <summary>
+    /// Specifies the display style or severity of a <see cref="RadzenTimelineItem" />
+    /// </summary>
+    public enum PointStyle
+    {
+        /// <summary>
+        /// Primary styling. Similar to primary buttons.
+        /// </summary>
+        Primary,
+        /// <summary>
+        /// Secondary styling. Similar to secondary buttons.
+        /// </summary>
+        Secondary,
+        /// <summary>
+        /// Light styling. Similar to light buttons.
+        /// </summary>
+        Light,
+        /// <summary>
+        /// Dark styling. Similar to dark buttons.
+        /// </summary>
+        Base,
+        /// <summary>
+        /// The default styling.
+        /// </summary>
+        Dark,
+        /// <summary>
+        /// Success styling.
+        /// </summary>
+        Success,
+        /// <summary>
+        /// Danger styling.
+        /// </summary>
+        Danger,
+        /// <summary>
+        /// Warning styling.
+        /// </summary>
+        Warning,
+        /// <summary>
+        /// Informative styling.
+        /// </summary>
+        Info
+    }
+
+    /// <summary>
+    /// Specifies the behavior of <see cref="RadzenProgressBar" /> or <see cref="RadzenProgressBarCircular" />.
+    /// </summary>
+    public enum ProgressBarMode
+    {
+        /// <summary>
+        /// RadzenProgressBar displays its value as a percentage range (0 to 100).
+        /// </summary>
+        Determinate,
+        /// <summary>
+        /// RadzenProgressBar displays continuous animation.
+        /// </summary>
+        Indeterminate
+    }
+
+    /// <summary>
+    /// Specifies the display style of a <see cref="RadzenProgressBar" /> and <see cref="RadzenProgressBarCircular" />. Affects the visual styling of RadzenProgressBar (background and text color) and RadzenProgressBarCircular (stroke and text color).
+    /// </summary>
+    public enum ProgressBarStyle
+    {
+        /// <summary>
+        /// Primary styling. Similar to primary buttons.
+        /// </summary>
+        Primary,
+        /// <summary>
+        /// Secondary styling. Similar to secondary buttons.
+        /// </summary>
+        Secondary,
+        /// <summary>
+        /// Light styling. Similar to light buttons.
+        /// </summary>
+        Light,
+        /// <summary>
+        /// Dark styling. Similar to dark buttons.
+        /// </summary>
+        Dark,
+        /// <summary>
+        /// Success styling.
+        /// </summary>
+        Success,
+        /// <summary>
+        /// Danger styling.
+        /// </summary>
+        Danger,
+        /// <summary>
+        /// Warning styling.
+        /// </summary>
+        Warning,
+        /// <summary>
+        /// Informative styling.
+        /// </summary>
+        Info
+    }
+
+    /// <summary>
+    /// Specifies the size of a <see cref="RadzenProgressBarCircular" />.
+    /// </summary>
+    public enum ProgressBarCircularSize
+    {
+        /// <summary>
+        /// The default size of a circular progress bar.
+        /// </summary>
+        Medium,
+        /// <summary>
+        /// A circular progress bar larger than the default.
+        /// </summary>
+        Large,
+        /// <summary>
+        /// A circular progress bar smaller than the default.
+        /// </summary>
+        Small,
+        /// <summary>
+        /// The smallest circular progress bar.
+        /// </summary>
+        ExtraSmall
+    }
+
+    /// <summary>
     /// Represents orientation of components that have items.
     /// </summary>
     public enum Orientation
@@ -632,6 +1313,99 @@ namespace Radzen
         /// Sibling items are displayed below each other.
         /// </summary>
         Vertical
+    }
+
+    /// <summary>
+    /// Represents whether items are forced onto one line or can wrap onto multiple lines.
+    /// </summary>
+    public enum FlexWrap
+    {
+        /// <summary>
+        /// The items are laid out in a single line.
+        /// </summary>
+        NoWrap,
+        /// <summary>
+        /// The items break into multiple lines.
+        /// </summary>
+        Wrap,
+        /// <summary>
+        /// The items break into multiple lines reversed.
+        /// </summary>
+        WrapReverse
+    }
+
+    /// <summary>
+    /// Represents content justification of Stack items.
+    /// </summary>
+    public enum JustifyContent
+    {
+        /// <summary>
+        /// Normal content justification of Stack items.
+        /// </summary>
+        Normal,
+        /// <summary>
+        /// Center content justification of Stack items.
+        /// </summary>
+        Center,
+        /// <summary>
+        /// Start content justification of Stack items.
+        /// </summary>
+        Start,
+        /// <summary>
+        /// End content justification of Stack items.
+        /// </summary>
+        End,
+        /// <summary>
+        /// Left content justification of Stack items.
+        /// </summary>
+        Left,
+        /// <summary>
+        /// Right content justification of Stack items.
+        /// </summary>
+        Right,
+        /// <summary>
+        /// SpaceBetween content justification of Stack items.
+        /// </summary>
+        SpaceBetween,
+        /// <summary>
+        /// SpaceAround content justification of Stack items.
+        /// </summary>
+        SpaceAround,
+        /// <summary>
+        /// SpaceEvenly content justification of Stack items.
+        /// </summary>
+        SpaceEvenly,
+        /// <summary>
+        /// Stretch content justification of Stack items.
+        /// </summary>
+        Stretch
+    }
+
+    /// <summary>
+    /// Represents the alignment of Stack items.
+    /// </summary>
+    public enum AlignItems
+    {
+        /// <summary>
+        /// Normal items alignment.
+        /// </summary>
+        Normal,
+        /// <summary>
+        /// Center items alignment.
+        /// </summary>
+        Center,
+        /// <summary>
+        /// Start items alignment.
+        /// </summary>
+        Start,
+        /// <summary>
+        /// End items alignment.
+        /// </summary>
+        End,
+        /// <summary>
+        /// Stretch items alignment.
+        /// </summary>
+        Stretch
     }
 
     /// <summary>
@@ -678,9 +1452,17 @@ namespace Radzen
         /// </summary>
         Medium,
         /// <summary>
+        /// A button larger than the default.
+        /// </summary>
+        Large,
+        /// <summary>
         /// A button smaller than the default.
         /// </summary>
-        Small
+        Small,
+        /// <summary>
+        /// The smallest button.
+        /// </summary>
+        ExtraSmall
     }
 
     /// <summary>
@@ -701,6 +1483,10 @@ namespace Radzen
         /// </summary>
         Light,
         /// <summary>
+        /// A button with dark styling.
+        /// </summary>
+        Dark,
+        /// <summary>
         /// A button with success styling.
         /// </summary>
         Success,
@@ -716,6 +1502,56 @@ namespace Radzen
         /// A button with informative styling.
         /// </summary>
         Info
+    }
+
+    /// <summary>
+    /// Specifies the design variant of <see cref="RadzenButton" /> and <see cref="RadzenBadge" />. Affects the visual styling of RadzenButton and RadzenBadge.
+    /// </summary>
+    public enum Variant
+    {
+        /// <summary>
+        /// A filled appearance.
+        /// </summary>
+        Filled,
+        /// <summary>
+        /// A flat appearance without any drop shadows.
+        /// </summary>
+        Flat,
+        /// <summary>
+        /// A text appearance.
+        /// </summary>
+        Text,
+        /// <summary>
+        /// An outlined appearance.
+        /// </summary>
+        Outlined
+    }
+
+    /// <summary>
+    /// Specifies the color shade of a <see cref="RadzenButton" />. Affects the visual styling of RadzenButton.
+    /// </summary>
+    public enum Shade
+    {
+        /// <summary>
+        /// A button with lighter styling.
+        /// </summary>
+        Lighter,
+        /// <summary>
+        /// A button with light styling.
+        /// </summary>
+        Light,
+        /// <summary>
+        /// A button with default styling.
+        /// </summary>
+        Default,
+        /// <summary>
+        /// A button with dark styling.
+        /// </summary>
+        Dark,
+        /// <summary>
+        /// A button with darker styling.
+        /// </summary>
+        Darker
     }
 
     /// <summary>
@@ -834,6 +1670,14 @@ namespace Radzen
         /// <summary>
         /// Satisfied if the current value is null.
         /// </summary>
+        In,
+        /// <summary>
+        /// Satisfied if the current value is in the specified value.
+        /// </summary>
+        NotIn,
+        /// <summary>
+        /// Satisfied if the current value is not in the specified value.
+        /// </summary>
         IsNull,
         /// <summary>
         /// Satisfied if the current value is <see cref="string.Empty"/>.
@@ -846,7 +1690,11 @@ namespace Radzen
         /// <summary>
         /// Satisfied if the current value is not <see cref="string.Empty"/>.
         /// </summary>
-        IsNotEmpty
+        IsNotEmpty, 
+        /// <summary>
+        /// Custom operator if not need to generate the filter.
+        /// </summary>
+        Custom
     }
 
     /// <summary>
@@ -865,7 +1713,15 @@ namespace Radzen
         /// <summary>
         /// The text is centered in its container.
         /// </summary>
-        Center
+        Center,
+        /// <summary>The text is justified.</summary>
+        Justify,
+        /// <summary>Same as justify, but also forces the last line to be justified.</summary>
+        JustifyAll,
+        /// <summary>The same as left if direction is left-to-right and right if direction is right-to-left..</summary>
+        Start,
+        /// <summary>The same as right if direction is left-to-right and left if direction is right-to-left..</summary>
+        End
     }
 
     /// <summary>
@@ -909,6 +1765,10 @@ namespace Radzen
         /// </summary>
         Light,
         /// <summary>
+        /// Dark styling. Similar to dark buttons.
+        /// </summary>
+        Dark,
+        /// <summary>
         /// Success styling.
         /// </summary>
         Success,
@@ -943,6 +1803,10 @@ namespace Radzen
         /// Light styling. Similar to light buttons.
         /// </summary>
         Light,
+        /// <summary>
+        /// Dark styling. Similar to dark buttons.
+        /// </summary>
+        Dark,
         /// <summary>
         /// Success styling.
         /// </summary>
@@ -1135,6 +1999,42 @@ namespace Radzen
     }
 
     /// <summary>
+    /// Represents a filter in a component that supports filtering.
+    /// </summary>
+    public class CompositeFilterDescriptor
+    {
+        /// <summary>
+        /// Gets or sets the name of the filtered property.
+        /// </summary>
+        /// <value>The property.</value>
+        public string Property { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value to filter by.
+        /// </summary>
+        /// <value>The filter value.</value>
+        public object FilterValue { get; set; }
+
+        /// <summary>
+        /// Gets or sets the operator which will compare the property value with <see cref="FilterValue" />.
+        /// </summary>
+        /// <value>The filter operator.</value>
+        public FilterOperator FilterOperator { get; set; }
+
+        /// <summary>
+        /// Gets or sets the logic used to combine the outcome of filtering by <see cref="FilterValue" />.
+        /// </summary>
+        /// <value>The logical filter operator.</value>
+        public LogicalFilterOperator LogicalFilterOperator { get; set; }
+
+        /// <summary>
+        /// Gets or sets the filters.
+        /// </summary>
+        /// <value>The filters.</value>
+        public IEnumerable<CompositeFilterDescriptor> Filters { get; set; }
+    }
+
+    /// <summary>
     /// Represents a sorting description. Used in components that support sorting.
     /// </summary>
     public class SortDescriptor
@@ -1238,6 +2138,31 @@ namespace Radzen
         /// </summary>
         /// <value>The sorts.</value>
         public IEnumerable<SortDescriptor> Sorts { get; set; }
+    }
+
+    /// <summary>
+    /// Supplies information about a <see cref="RadzenDataGrid{TItem}.LoadChildData" /> event that is being raised.
+    /// </summary>
+    public class DataGridLoadChildDataEventArgs<T>
+    {
+        /// <summary>
+        /// Gets or sets the data.
+        /// </summary>
+        /// <value>The data.</value>
+        public IEnumerable<T> Data { get; set; }
+
+        /// <summary>
+        /// Gets the item.
+        /// </summary>
+        /// <value>The item.</value>
+        public T Item { get; internal set; }
+    }
+
+    internal class DataGridChildData<T>
+    {
+        internal DataGridChildData<T> ParentChildData { get; set; }
+        internal int Level { get; set; }
+        internal IEnumerable<T> Data { get; set; }
     }
 
     /// <summary>
@@ -1547,6 +2472,9 @@ namespace Radzen
         /// Gets or sets the password.
         /// </summary>
         public string Password { get; set; }
+
+        /// <summary> Gets or sets a value indicating whether the user wants to remember their credentials. </summary>
+        public bool RememberMe { get; set; }
     }
 
     /// <summary>
@@ -1576,7 +2504,7 @@ namespace Radzen
             {
                 return Enum.Parse(Nullable.GetUnderlyingType(type), value.ToString());
             }
-            
+
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
             {
                 Type itemType = type.GetGenericArguments()[0];
@@ -1604,21 +2532,65 @@ namespace Radzen
         /// <typeparam name="TItem">The owner type.</typeparam>
         /// <typeparam name="TValue">The value type.</typeparam>
         /// <param name="propertyName">Name of the property to return.</param>
+        /// <param name="type">Type of the object.</param>
         /// <returns>A function which return the specified property by its name.</returns>
-        public static Func<TItem, TValue> Getter<TItem, TValue>(string propertyName)
+        public static Func<TItem, TValue> Getter<TItem, TValue>(string propertyName, Type type = null)
         {
-            var arg = Expression.Parameter(typeof(TItem));
-
-            Expression body = arg;
-
-            foreach (var member in propertyName.Split("."))
+            if (propertyName.Contains("["))
             {
-                body = Expression.PropertyOrField(body, member);
+                return DynamicExpressionParser.ParseLambda<TItem, TValue>(null, false, propertyName).Compile();
             }
+            else
+            {
+                var arg = Expression.Parameter(typeof(TItem));
 
-            body = Expression.Convert(body, typeof(TValue));
+                Expression body = arg;
 
-            return Expression.Lambda<Func<TItem, TValue>>(body, arg).Compile();
+                if (type != null)
+                {
+                    body = Expression.Convert(body, type);
+                }
+
+                foreach (var member in propertyName.Split("."))
+                {
+                    if (body.Type.IsInterface)
+                    {
+                        body = Expression.Property(body,
+                            new [] { body.Type }.Concat(body.Type.GetInterfaces()).FirstOrDefault(t => t.GetProperty(member) != null),
+                            member
+                        );
+                    }
+                    else
+                    {
+                        try
+                        {
+                            body = Expression.PropertyOrField(body, member);
+                        }
+                        catch (AmbiguousMatchException)
+                        {
+                            var property = body.Type.GetProperty(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+
+                            if (property != null)
+                            {
+                                body = Expression.Property(body, property);
+                            }
+                            else
+                            {
+                                var field = body.Type.GetField(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.FlattenHierarchy);
+
+                                if (field != null)
+                                {
+                                    body = Expression.Field(body, field);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                body = Expression.Convert(body, typeof(TValue));
+
+                return Expression.Lambda<Func<TItem, TValue>>(body, arg).Compile();
+            }
         }
 
         /// <summary>
@@ -1669,7 +2641,15 @@ namespace Radzen
         /// <param name="property">The property.</param>
         public static string GetProperty(string property)
         {
-            var type = Type.GetType($"System.{property}");
+            Type type = null;
+            try
+            {
+                type = Type.GetType($"System.{property}");
+            }
+            catch
+            {
+                // ignore the exception and assume the property start without a type and do not need the '@' prefix
+            }
             var propertyName = $"{(type != null ? "@" : "")}{property}";
 
             if (propertyName.IndexOf(".") != -1)
@@ -1811,11 +2791,11 @@ namespace Radzen
             return source.IsEnum;
         }
 
-        /// <summary> 
-        /// Determines whether the specified type is a Nullable enum. 
-        /// </summary> 
-        /// <param name="source">The type.</param> 
-        /// <returns><c>true</c> if the specified source is an enum; otherwise, <c>false</c>.</returns> 
+        /// <summary>
+        /// Determines whether the specified type is a Nullable enum.
+        /// </summary>
+        /// <param name="source">The type.</param>
+        /// <returns><c>true</c> if the specified source is an enum; otherwise, <c>false</c>.</returns>
         public static bool IsNullableEnum(Type source)
         {
             if (source == null) return false;
@@ -1844,7 +2824,23 @@ namespace Radzen
             }
             return false;
         }
-
+        
+        /// <summary>
+        /// Method to only replace first occurence of a substring in a string
+        /// </summary>
+        /// <param name="text"></param>
+        /// <param name="search"></param>
+        /// <param name="replace"></param>
+        /// <returns></returns>
+        public static string ReplaceFirst(this string text, string search, string replace)
+        {
+            int pos = text.IndexOf(search, StringComparison.Ordinal);
+            if (pos < 0)
+            {
+                return text;
+            }
+            return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
+        }
 
         /// <summary>
         /// Gets the type of the property.
@@ -1857,15 +2853,30 @@ namespace Radzen
             if (property.Contains("."))
             {
                 var part = property.Split('.').FirstOrDefault();
-                return GetPropertyType(type?.GetProperty(part)?.PropertyType, property.Replace($"{part}.", ""));
+                return GetPropertyType(GetPropertyTypeIncludeInterface(type, part), property.ReplaceFirst($"{part}.", ""));
             }
 
-            return type?.GetProperty(property)?.PropertyType;
+            return GetPropertyTypeIncludeInterface(type, property);
+        }
+
+        private static Type GetPropertyTypeIncludeInterface(Type type, string property)
+        {
+            if (type != null)
+            {
+                return !type.IsInterface ?
+                    type.GetProperty(property)?.PropertyType :
+                        new Type[] { type }
+                        .Concat(type.GetInterfaces())
+                        .FirstOrDefault(t => t.GetProperty(property) != null)?
+                        .GetProperty(property)?.PropertyType;
+            }
+
+            return null;
         }
     }
 
     /// <summary>
-    /// Represents the common <see cref="RadzenTemplateForm{TItem}" /> API used by 
+    /// Represents the common <see cref="RadzenTemplateForm{TItem}" /> API used by
     /// its items. Injected as a cascading property in <see cref="IRadzenFormComponent" />.
     /// </summary>
     public interface IRadzenForm
@@ -1921,6 +2932,12 @@ namespace Radzen
         /// </summary>
         /// <value>The field identifier.</value>
         FieldIdentifier FieldIdentifier { get; }
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Sets the focus.
+        /// </summary>
+        ValueTask FocusAsync();
+#endif
     }
 
     /// <summary>
@@ -1967,6 +2984,52 @@ namespace Radzen
         /// <value>The content of the child.</value>
         [Parameter]
         public RenderFragment ChildContent { get; set; }
+    }
+
+    /// <summary>
+    /// A base class of row/col components.
+    /// </summary>
+    public class RadzenFlexComponent : RadzenComponentWithChildren
+    {
+        /// <summary>
+        /// Gets or sets the content justify.
+        /// </summary>
+        /// <value>The content justify.</value>
+        [Parameter]
+        public JustifyContent JustifyContent { get; set; } = JustifyContent.Normal;
+
+        /// <summary>
+        /// Gets or sets the items alignment.
+        /// </summary>
+        /// <value>The items alignment.</value>
+        [Parameter]
+        public AlignItems AlignItems { get; set; } = AlignItems.Normal;
+
+        internal string GetFlexCSSClass<T>(Enum v)
+        {
+            var value = ToDashCase(Enum.GetName(typeof(T), v));
+            return value == "start" || value == "end" ? $"flex-{value}" : value;
+        }
+
+        internal string ToDashCase(string value)
+        {
+            var sb = new StringBuilder();
+
+            foreach (var ch in value)
+            {
+                if ((char.IsUpper(ch) && sb.Length > 0) || char.IsSeparator(ch))
+                {
+                    sb.Append('-');
+                }
+
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(char.ToLowerInvariant(ch));
+                }
+            }
+
+            return sb.ToString();
+        }
     }
 
     class Debouncer
@@ -2211,9 +3274,52 @@ namespace Radzen
         }
     }
 
+    /// <summary>
+    /// CoordinateSystem enum
+    /// </summary>
     public enum CoordinateSystem
     {
+        /// <summary>
+        /// Cartesian CoordinateSystem
+        /// </summary>
         Cartesian,
+        /// <summary>
+        /// Cartesian CoordinateSystem
+        /// </summary>
         Polar
+    }
+
+    /// <summary>
+    /// Menu Item display style enum
+    /// </summary>
+    public enum MenuItemDisplayStyle
+    {
+        /// <summary>
+        /// Show text only
+        /// </summary>
+        Text,
+        /// <summary>
+        /// Show only icons
+        /// </summary>
+        Icon,
+        /// <summary>
+        /// Both icons and text are displayed
+        /// </summary>
+        IconAndText
+    }
+
+    /// <summary>
+    /// Frozen Column Position enum
+    /// </summary>
+    public enum FrozenColumnPosition
+    {
+        /// <summary>
+        /// Freeze column to the left
+        /// </summary>
+        Left,
+        /// <summary>
+        /// Freeze column to the right
+        /// </summary>
+        Right
     }
 }

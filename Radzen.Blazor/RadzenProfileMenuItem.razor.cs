@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Components.Web;
 
 namespace Radzen.Blazor
@@ -29,11 +30,32 @@ namespace Radzen.Blazor
         public string Path { get; set; }
 
         /// <summary>
+        /// Gets or sets the navigation link match.
+        /// </summary>
+        /// <value>The navigation link match.</value>
+        [Parameter]
+        public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+
+        /// <summary>
         /// Gets or sets the icon.
         /// </summary>
         /// <value>The icon.</value>
         [Parameter]
         public string Icon { get; set; }
+
+        /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string IconColor { get; set; }
+
+        /// <summary>
+        /// Gets or sets the image.
+        /// </summary>
+        /// <value>The image.</value>
+        [Parameter]
+        public string Image { get; set; }
 
         /// <summary>
         /// Gets or sets the text.

@@ -18,7 +18,9 @@ namespace Radzen.Blazor.Tests
 
             component.SetParametersAndRender(parameters => parameters.Add<double>(p => p.Value, value));
 
-            Assert.Contains(@$"<div class=""rz-progressbar-label"">{value}", component.Markup);
+
+            Assert.Contains(@$"<div class=""rz-progressbar-label"">", component.Markup);
+            Assert.Contains(@$"{value}%", component.Markup);
             Assert.Contains(@$"aria-valuenow=""{value}""", component.Markup);
             Assert.Contains(@$"aria-valuemin=""0""", component.Markup);
         }
@@ -50,13 +52,13 @@ namespace Radzen.Blazor.Tests
 
             component.Render();
 
-            Assert.Contains(@$"%</div>", component.Markup);
+            Assert.Contains(@$"0%", component.Markup);
 
-            var value = "mm";
+            var unit = "mm";
 
-            component.SetParametersAndRender(parameters => parameters.Add(p => p.Unit, value));
+            component.SetParametersAndRender(parameters => parameters.Add(p => p.Unit, unit));
 
-            Assert.Contains(@$"{value}</div>", component.Markup);
+            Assert.Contains(@$"0{unit}", component.Markup);
         }
 
         [Fact]
@@ -127,18 +129,18 @@ namespace Radzen.Blazor.Tests
             var component = ctx.RenderComponent<RadzenProgressBar>();
 
             component.SetParametersAndRender(parameters=>parameters.Add(p=>p.ProgressBarStyle, ProgressBarStyle.Success));
-            Assert.Contains(@$"rz-progressbar-determinate-success", component.Markup);
+            Assert.Contains(@$"rz-progressbar-success", component.Markup);
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Info));
-            Assert.Contains(@$"rz-progressbar-determinate-info", component.Markup);
+            Assert.Contains(@$"rz-progressbar-info", component.Markup);
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Success));
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Mode, ProgressBarMode.Indeterminate));
-            Assert.Contains(@$"rz-progressbar-indeterminate-success", component.Markup);
+            Assert.Contains(@$"rz-progressbar-success", component.Markup);
 
             component.SetParametersAndRender(parameters => parameters.Add(p => p.ProgressBarStyle, ProgressBarStyle.Info));
             component.SetParametersAndRender(parameters => parameters.Add(p => p.Mode, ProgressBarMode.Indeterminate));
-            Assert.Contains(@$"rz-progressbar-indeterminate-info", component.Markup);
+            Assert.Contains(@$"rz-progressbar-info", component.Markup);
         }
     }
 }
