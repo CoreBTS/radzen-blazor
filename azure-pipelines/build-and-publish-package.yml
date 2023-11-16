@@ -10,10 +10,10 @@ name: '$(Date:yyyyMMdd)$(Rev:rrr)'
 
 steps:
 - task: UseDotNet@2
-  displayName: Enable .NET 6.0
+  displayName: Enable .NET 8.0
   inputs:
     packageType: 'sdk'
-    version: '6.x'
+    version: '8.x'
 
 - task: CmdLine@2
   displayName: Assign Package Version
