@@ -2941,10 +2941,8 @@ namespace Radzen.Blazor
         /// Orders the DataGrid by property name.
         /// </summary>
         /// <param name="property">The property name.</param>
-        public void OrderBy(string property)
+        public void OrderBy(string property, params string[] otherProperties)
         {
-            var p = IsOData() ? property.Replace('.', '/') : PropertyAccess.GetProperty(property);
-
             var column = allColumns.ToList().Where(c => c.GetSortProperty() == property).FirstOrDefault();
 
             if (column != null)
@@ -2952,6 +2950,20 @@ namespace Radzen.Blazor
                 SetColumnSortOrder(column);
                 Sort.InvokeAsync(new DataGridColumnSortEventArgs<TItem>() { Column = column, SortOrder = column.GetSortOrder() });
                 SaveSettings();
+            }
+
+            if (AllowMultiColumnSorting)
+            {
+                foreach (var otherProperty in otherProperties)
+                {
+                    column = allColumns.ToList().Where(c => c.GetSortProperty() == otherProperty).FirstOrDefault();
+
+                    if (column != null)
+                    {
+                        SetColumnSortOrder(column);
+                        Sort.InvokeAsync(new DataGridColumnSortEventArgs<TItem>() { Column = column, SortOrder = column.GetSortOrder() });
+                    }
+                }
             }
 
             if (LoadData.HasDelegate && IsVirtualizationAllowed())
@@ -2962,18 +2974,20 @@ namespace Radzen.Blazor
 #endif
             }
 
-            InvokeAsync(ReloadInternal);
+            InvokeAsync(async () => 
+            {
+                await ChangeState();
+                await ReloadInternal();
+            });
         }
 
         /// <summary>
         /// Orders descending the DataGrid by property name.
         /// </summary>
         /// <param name="property">The property name.</param>
-        public void OrderByDescending(string property)
+        public void OrderByDescending(string property, params string[] otherProperties)
         {
-            var p = IsOData() ? property.Replace('.', '/') : PropertyAccess.GetProperty(property);
-
-            var column = allColumns.ToList().Where(c => c.GetSortProperty() == p).FirstOrDefault();
+            var column = allColumns.ToList().Where(c => c.GetSortProperty() == property).FirstOrDefault();
 
             if (column != null)
             {
@@ -2984,6 +2998,22 @@ namespace Radzen.Blazor
                 SaveSettings();
             }
 
+            if (AllowMultiColumnSorting)
+            {
+                foreach (var otherProperty in otherProperties)
+                {
+                    column = allColumns.ToList().Where(c => c.GetSortProperty() == otherProperty).FirstOrDefault();
+
+                    if (column != null)
+                    {
+                        column.SetSortOrder(SortOrder.Ascending);
+                        SetColumnSortOrder(column);
+
+                        Sort.InvokeAsync(new DataGridColumnSortEventArgs<TItem>() { Column = column, SortOrder = column.GetSortOrder() });
+                    }
+                }
+            }
+
             if (LoadData.HasDelegate && IsVirtualizationAllowed())
             {
                 Data = null;
@@ -2992,7 +3022,11 @@ namespace Radzen.Blazor
 #endif
             }
 
-            InvokeAsync(ReloadInternal);
+            InvokeAsync(async () => 
+            {
+                await ChangeState();
+                await ReloadInternal();
+            });
         }
 
         /// <inheritdoc />
