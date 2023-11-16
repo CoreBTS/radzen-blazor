@@ -52,6 +52,42 @@ $rz-theme-colors-map: map-merge(
     "danger-lighter": $rz-danger-lighter,
     "danger-dark": $rz-danger-dark,
     "danger-darker": $rz-danger-darker,
+
+    "on-primary": $rz-white,
+    "on-primary-light": $rz-white,
+    "on-primary-lighter": $rz-primary,
+    "on-primary-dark": $rz-white,
+    "on-primary-darker": $rz-white,
+    
+    "on-secondary": $rz-white,
+    "on-secondary-light": $rz-white,
+    "on-secondary-lighter": $rz-secondary,
+    "on-secondary-dark": $rz-white,
+    "on-secondary-darker": $rz-white,
+    
+    "on-info": $rz-white,
+    "on-info-light": $rz-white,
+    "on-info-lighter": $rz-info,
+    "on-info-dark": $rz-white,
+    "on-info-darker": $rz-white,
+    
+    "on-success": $rz-white,
+    "on-success-light": $rz-white,
+    "on-success-lighter": $rz-success,
+    "on-success-dark": $rz-white,
+    "on-success-darker": $rz-white,
+    
+    "on-warning": $rz-white,
+    "on-warning-light": $rz-white,
+    "on-warning-lighter": $rz-warning,
+    "on-warning-dark": $rz-white,
+    "on-warning-darker": $rz-white,
+    
+    "on-danger": $rz-white,
+    "on-danger-light": $rz-white,
+    "on-danger-lighter": $rz-danger,
+    "on-danger-dark": $rz-white,
+    "on-danger-darker": $rz-white,
     
     "series-1": $rz-series-1,
     "series-2": $rz-series-2,
@@ -61,6 +97,22 @@ $rz-theme-colors-map: map-merge(
     "series-6": $rz-series-6,
     "series-7": $rz-series-7,
     "series-8": $rz-series-8,
+    "series-9": $rz-series-9,
+    "series-10": $rz-series-10,
+    "series-11": $rz-series-11,
+    "series-12": $rz-series-12,
+    "series-13": $rz-series-13,
+    "series-14": $rz-series-14,
+    "series-15": $rz-series-15,
+    "series-16": $rz-series-16,
+    "series-17": $rz-series-17,
+    "series-18": $rz-series-18,
+    "series-19": $rz-series-19,
+    "series-20": $rz-series-20,
+    "series-21": $rz-series-21,
+    "series-22": $rz-series-22,
+    "series-23": $rz-series-23,
+    "series-24": $rz-series-24,
   ),
   $rz-theme-colors-map
 );
@@ -82,8 +134,9 @@ $rz-theme-constants-map: map-merge(
     "body-font-size": $rz-body-font-size,
     "body-line-height": $rz-body-line-height,
     "body-background-color": $rz-body-background-color,
-    "icon-size": $rz-icon-size,
     "text-font-family": $rz-text-font-family,
+    "icon-size": $rz-icon-size,
+    "icon-font-family": $rz-icon-font-family,
   ),
   $rz-theme-constants-map
 );
@@ -164,6 +217,64 @@ $rz-base-background-color: var(--rz-white) !default;
   --rz-base-background-color: #{$rz-base-background-color};
 }
 
+// Base/Light/Dark Styles Map 
+
+$base-styles-map: () !default;
+$base-styles-map: map-merge(
+  (
+    base: (
+      background-color: var(--rz-base-200),
+      color: var(--rz-text-color)
+    ),
+    light: (
+      background-color: var(--rz-base-200),
+      color: var(--rz-text-color)
+    ),
+    dark: (
+      background-color: var(--rz-base-900),
+      color: var(--rz-text-contrast-color)
+    )
+  ),
+  $base-styles-map
+);
+
+// Severity Styles Map
+
+$severity-styles-map: () !default;
+$severity-styles-map: map-merge(
+  (
+    primary: (
+      background-color: var(--rz-primary),
+      color: var(--rz-on-primary)
+    ),
+    secondary: (
+      background-color: var(--rz-secondary),
+      color: var(--rz-on-secondary)
+    ),
+    info: (
+      background-color: var(--rz-info),
+      color: var(--rz-on-info)
+    ),
+    warning: (
+      background-color: var(--rz-warning),
+      color: var(--rz-on-warning)
+    ),
+    error: (
+      background-color: var(--rz-danger),
+      color: var(--rz-on-danger)
+    ),
+    danger: (
+      background-color: var(--rz-danger),
+      color: var(--rz-on-danger)
+    ),
+    success: (
+      background-color: var(--rz-success),
+      color: var(--rz-on-success)
+    )
+  ),
+  $severity-styles-map
+);
+
 // Border
 
 // Border CSS variables
@@ -240,7 +351,7 @@ $rz-border-radius-map: map-merge(
 }
 
 // Border Radius CSS classes
-@include rz-utility-css($rz-border-radius-map, 'border-radius');
+@include rz-utility-map-css('border-radius', $rz-border-radius-map);
 
 // Shadow
 
@@ -294,7 +405,7 @@ $rz-shadow-map: map-merge(
 }
 
 // Shadow CSS classes
-@include rz-utility-css($rz-shadow-map, 'box-shadow');
+@include rz-utility-map-css('box-shadow', $rz-shadow-map);
 
 // Transition
 
@@ -308,19 +419,74 @@ $rz-transition-all: all 0.1s linear !default;
   --rz-transition-all: #{$rz-transition-all};
 }
 
+// Layout
+
+// Responsive breakpoints map
+$rz-breakpoints-map: () !default;
+$rz-breakpoints-map: map-merge(
+  (
+    xs: 576px,
+    sm: 768px,
+    md: 1024px,
+    lg: 1280px,
+    xl: 1920px,
+    xx: 2560px,
+  ),
+  $rz-breakpoints-map
+);
+
+// Gutters
+$rz-gutter: 1rem;
+$rz-gutter-map: () !default;
+$rz-gutter-map: map-merge(
+  (
+    0: 0,
+    "05": ($rz-gutter * .125),
+    1: ($rz-gutter * .25),
+    2: ($rz-gutter * .5),
+    3: ($rz-gutter * .75),
+    4: $rz-gutter,
+    5: ($rz-gutter * 1.25),
+    6: ($rz-gutter * 1.5),
+    7: ($rz-gutter * 1.75),
+    8: ($rz-gutter * 2),
+    9: ($rz-gutter * 2.25),
+    10: ($rz-gutter * 2.5),
+    11: ($rz-gutter * 2.75),
+    12: ($rz-gutter * 3)
+  ),
+  $rz-gutter-map
+);
+
+// Display
+// Example .rz-display-block
+$display: none, block, inline, inline-block, flex, inline-flex, grid, inline-grid;
+@include rz-utility-list-css('display', $display);
+@include rz-utility-list-breakpoints-css('display', $display, $rz-breakpoints-map);
+
+// Justify-content
+// Example .rz-justify-content-center
+$justify-content: normal, stretch, center, start, end, flex-start, flex-end, left, right, space-between, space-around, space-evenly;
+@include rz-utility-list-css('justify-content', $justify-content);
+
+// Align-items
+// Example .rz-align-items-center
+$align-items: normal, stretch, center, start, end, flex-start, flex-end;
+@include rz-utility-list-css('align-items', $align-items);
+
 //---- CSS classes
 
 // Color
 // Example .rz-color-primary
-@include rz-color-css($rz-theme-colors-map, 'color');
+@include rz-color-css('color', $rz-theme-colors-map);
 
 // Background Color
 // Example .rz-background-color-primary
-@include rz-color-css($rz-theme-colors-map, 'background-color');
+@include rz-color-css('background-color', $rz-theme-colors-map);
 
 // Border Color
 // Example .rz-border-color-primary
-@include rz-color-css($rz-theme-colors-map, 'border-color');
+@include rz-color-css('border-color', $rz-theme-colors-map);
 
 // Border
 // Example .rz-border-primary

@@ -27,15 +27,88 @@ namespace Radzen.Blazor
         /// <inheritdoc />
         protected override string GetComponentCssClass()
         {
-            return $"rz-paginator rz-unselectable-text rz-helper-clearfix {HorizontalAlignCssClasses[HorizontalAlign]}";
+            var additionalClasses = new List<string>();
+
+            if (Density == Density.Compact)
+            {
+                additionalClasses.Add("rz-density-compact");
+            }
+
+            return $"rz-paginator rz-unselectable-text rz-helper-clearfix {HorizontalAlignCssClasses[HorizontalAlign]} {String.Join(" ", additionalClasses)}";
         }
 
+        /// <summary>
+        /// Gets or sets the pager's first page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string FirstPageTitle { get; set; } = "First page.";
+
+        /// <summary>
+        /// Gets or sets the pager's first page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string FirstPageAriaLabel { get; set; } = "Go to first page.";
+
+        /// <summary>
+        /// Gets or sets the pager's previous page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string PrevPageTitle { get; set; } = "Previous page";
+
+        /// <summary>
+        /// Gets or sets the pager's previous page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string PrevPageAriaLabel { get; set; } = "Go to previous page.";
+
+        /// <summary>
+        /// Gets or sets the pager's last page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string LastPageTitle { get; set; } = "Last page";
+
+        /// <summary>
+        /// Gets or sets the pager's last page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string LastPageAriaLabel { get; set; } = "Go to last page.";
+
+        /// <summary>
+        /// Gets or sets the pager's next page button's title attribute.
+        /// </summary>
+        [Parameter]
+        public string NextPageTitle { get; set; } = "Next page";
+
+        /// <summary>
+        /// Gets or sets the pager's next page button's aria-label attribute.
+        /// </summary>
+        [Parameter]
+        public string NextPageAriaLabel { get; set; } = "Go to next page.";
+        
+        /// <summary>
+        /// Gets or sets the pager's numeric page number buttons' title attributes.
+        /// </summary>
+        [Parameter]
+        public string PageTitleFormat { get; set; } = "Page {0}";
+        
+        /// <summary>
+        /// Gets or sets the pager's numeric page number buttons' aria-label attributes.
+        /// </summary>
+        [Parameter]
+        public string PageAriaLabelFormat { get; set; } = "Go to page {0}.";
+        
         /// <summary>
         /// Gets or sets the horizontal align.
         /// </summary>
         /// <value>The horizontal align.</value>
         [Parameter]
         public HorizontalAlign HorizontalAlign { get; set; } = HorizontalAlign.Justify;
+
+        /// <summary>
+        /// Gets or sets a value indicating Pager density.
+        /// </summary>
+        [Parameter]
+        public Density Density { get; set; } = Density.Default;
 
         /// <summary>
         /// Gets or sets the page size.
@@ -164,7 +237,7 @@ namespace Radzen.Blazor
         protected async Task OnPageSizeChanged(object value)
         {
             bool isFirstPage = CurrentPage == 0;
-            bool isLastPage = CurrentPage == numberOfPages - 1;
+            bool isLastPage = CurrentPage == numberOfPages - 1 && numberOfPages > 1;
             int prevSkip = skip;
             PageSize = (int)value;
             await InvokeAsync(Reload);

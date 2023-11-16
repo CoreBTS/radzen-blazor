@@ -57,6 +57,22 @@ $rz-series-5: #ffee58 !default;
 $rz-series-6: #9ccc65 !default;
 $rz-series-7: #26a69a !default;
 $rz-series-8: #4fc3f7 !default;
+$rz-series-9: #7f5cce !default;
+$rz-series-10: #ce93d8 !default;
+$rz-series-11: #f48fb1 !default;
+$rz-series-12: #ffab91 !default;
+$rz-series-13: #fff176 !default;
+$rz-series-14: #aed581 !default;
+$rz-series-15: #4db6ac !default;
+$rz-series-16: #81d4fa !default;
+$rz-series-17: #a58cdd !default;
+$rz-series-18: #e1bee7 !default;
+$rz-series-19: #f8bbd0 !default;
+$rz-series-20: #ffccbc !default;
+$rz-series-21: #fff59d !default;
+$rz-series-22: #c5e1a5 !default;
+$rz-series-23: #80cbc4 !default;
+$rz-series-24: #b3e5fc !default;
 
 $rz-primary-light: mix($rz-white, $rz-primary, 20%) !default;
 $rz-primary-lighter: rgba($rz-primary, .12) !default;
@@ -96,8 +112,9 @@ $rz-root-font-size: 16px !default;
 $rz-body-font-size: 1rem !default;
 $rz-body-line-height: 1.5 !default;
 $rz-body-background-color: var(--rz-base-100) !default;
-$rz-icon-size: 1.5rem !default;
 $rz-text-font-family: Roboto, sans-serif !default;
+$rz-icon-font-family: 'Material Icons' !default;
+$rz-icon-size: 1.5rem !default;
 
 // Bootstrap variable overrides. DO NOT USE IN COMPONENTS!
 
@@ -203,6 +220,8 @@ $text: (
 $button-shadow: var(--rz-shadow-1) !default;
 $button-hover-shadow: var(--rz-shadow-3) !default;
 $button-hover-gradient: none !default;
+$button-focus-shadow: var(--rz-shadow-3) !default;
+$button-focus-gradient: linear-gradient(rgba(#fff, 0.2), rgba(#fff, 0.2)) !default !default;
 $button-active-shadow: var(--rz-shadow-6) !default;
 $button-active-gradient: none !default;
 $button-sizes: (
@@ -314,7 +333,7 @@ $header-border: none !default;
 $header-color: var(--rz-text-contrast-color) !default;
 $header-shadow: var(--rz-shadow-4) !default;
 
-.header {
+.rz-header {
   a,
   a:hover,
   a:focus {
@@ -331,10 +350,13 @@ $sidebar-z: 1 !default;
 $sidebar-border-right: var(--rz-border-base-200) !default;
 $sidebar-width: 300px !default;
 $sidebar-background-color: var(--rz-base-background-color) !default;
+$sidebar-color: var(--rz-text-color) !default;
 
 // Card
 $card-padding: 1rem !default;
+$card-flat-background-color: var(--rz-base-background-color) !default;
 $card-shadow: var(--rz-shadow-1) !default;
+$card-border: var(--rz-border-base-300) !default;
 
 // Accordion
 $accordion-item-padding: 1rem !default;
@@ -563,7 +585,7 @@ $switch-circle-margin: 0 !default;
   &:hover:not(.rz-disabled) {
     &:before {
       transition: background var(--rz-transition), transform var(--rz-transition), outlin-color var(--rz-transition);
-      outline: 10px solid rgba(0, 0, 0, 0.04);
+      box-shadow: var(--rz-switch-box-shadow), 0 0 0 10px rgba(0, 0, 0, 0.04);
     }
   }
 }
@@ -571,7 +593,7 @@ $switch-circle-margin: 0 !default;
 .rz-switch.rz-switch-checked .rz-switch-circle {
   &:hover:not(.rz-disabled) {
     &:before {
-      outline: 10px solid var(--rz-primary-lighter);
+      box-shadow: var(--rz-switch-box-shadow), 0 0 0 10px var(--rz-primary-lighter);
     }
   }
 }
@@ -765,6 +787,8 @@ $datepicker-calendar-selected-hover-background-color: var(--rz-secondary-light) 
 $datepicker-calendar-border: none !default;
 $datepicker-calendar-border-radius: 50% !default;
 $datepicker-calendar-transition: var(--rz-transition-all) !default;
+$datepicker-calendar-today-color: var(--rz-text-color) !default;
+$datepicker-calendar-today-box-shadow: inset 0 0 0 1px var(--rz-text-color) !default;
 $datepicker-title-height: 3.5rem !default;
 $timepicker-background-color: var(--rz-base-background-color) !default;
 $timepicker-button-background-color: var(--rz-base-300) !default;
@@ -931,7 +955,6 @@ $grid-column-resizer-width: 0.25rem !default;
 $grid-column-resizer-helper-width: 0.125rem !default;
 $grid-column-resizer-helper-background-color: var(--rz-secondary) !default;
 $grid-detail-template-background-color: var(--rz-base-100) !default;
-$grid-button-height: 1rem !default;
 $grid-group-header-padding: 1rem !default;
 $grid-group-header-item-background-color: var(--rz-base-200) !default;
 $grid-group-header-item-padding: 0.25rem 0.5rem 0.25rem 0.75rem !default;
@@ -985,7 +1008,7 @@ $paginator-dropdown-margin: $paginator-last-button-margin !default;
 $paginator-summary-padding: 0 1.25rem 0 0 !default;
 $paginator-summary-font-size: 0.875rem !default;
 $paginator-summary-color: var(--rz-text-tertiary-color) !default;
-$paginator-button-size: ".rz-button-lg" !default;
+$paginator-button-size: "%button-lg" !default;
 
 .rz-paginator-pages {
   max-height: 3rem;
@@ -1109,6 +1132,10 @@ $scheduler-event-padding: 0 1px 1px 1px !default;
 $scheduler-event-content-padding: 0.125rem 0.25rem !default;
 $scheduler-slot-title-padding: 0 0.25rem !default;
 $scheduler-day-number-padding: 0 0.5rem !default;
+$scheduler-year-padding: 1.5rem !default;
+$scheduler-year-slot-padding: .25rem !default;
+$scheduler-year-slot-title-width: 'fit-content' !default;
+$scheduler-year-slot-title-border-radius: 50% !default;
 
 .rz-scheduler-nav {
   .rz-button {
@@ -1127,6 +1154,10 @@ $scheduler-day-number-padding: 0 0.5rem !default;
 
 .rz-view-header {
   border-top: none !important;
+
+  .rz-year-view & {
+    border-bottom: none !important;
+  }
 }
 
 // Tabs
@@ -1159,6 +1190,9 @@ $tabs-transition: var(--rz-transition-all) !default;
 
 .rz-tabview {
   &.rz-tabview-top > .rz-tabview-nav {
+    li {
+      border-bottom: 2px solid transparent;
+    }
     .rz-tabview-selected {
       border-top-width: 0;
       border-bottom: 2px solid $tabs-tab-selected-bottom-border-color;
@@ -1174,6 +1208,9 @@ $tabs-transition: var(--rz-transition-all) !default;
     }
   }
   &.rz-tabview-left > .rz-tabview-nav {
+    li {
+      border-right: 2px solid transparent;
+    }
     .rz-tabview-selected {
       border-left-width: 0;
       border-right: 2px solid $tabs-tab-selected-bottom-border-color;
@@ -1207,17 +1244,17 @@ $dialog-background-color: var(--rz-base-background-color) !default;
 $dialog-shadow: var(--rz-shadow-9) !default;
 $dialog-title-background-color: var(--rz-base-background-color) !default;
 $dialog-title-border: none !default;
-$dialog-title-padding: 1.5rem 1.5rem 1rem 1.5rem !default;
-$dialog-title-font-size: 1rem !default;
+$dialog-title-padding: 1.5rem 1.5rem 0 1.5rem !default;
+$dialog-title-font-size: 1.25rem !default;
 $dialog-title-line-height: 1.5rem !default;
-$dialog-title-font-weight: 400 !default;
-$dialog-title-letter-spacing: 0 !default;
+$dialog-title-font-weight: 500 !default;
+$dialog-title-letter-spacing: .0125em !default;
 $dialog-title-color: var(--rz-text-title-color) !default;
 $dialog-close-font-size: var(--rz-icon-size) !default;
 $dialog-close-color: var(--rz-text-tertiary-color) !default;
 $dialog-close-hover-color: var(--rz-text-title-color) !default;
 $dialog-close-vertical-align: middle !default;
-$dialog-content-padding: 1.25rem !default;
+$dialog-content-padding: 1.5rem !default;
 $dialog-mask-background-color: var(--rz-base-800) !default;
 $dialog-border-radius: var(--rz-border-radius) !default;
 
@@ -1233,6 +1270,40 @@ $notification-error-color: var(--rz-danger) !default;
 $notification-error-background-color: var(--rz-danger-lighter) !default;
 $notification-info-color: var(--rz-info) !default;
 $notification-info-background-color: var(--rz-info-lighter) !default;
+
+// Alert 
+$alert-message-margin: 0.125rem 0 !default;
+
+$alert-sizes: () !default;
+$alert-sizes: map-merge(
+  (
+    lg: (
+      gap: 1.5rem,
+      margin: 1.5rem 0,
+      padding: 1.5rem,
+      message-margin: 0.125rem 0
+    ),
+    md: (
+      gap: 1rem,
+      margin: 1rem 0,
+      padding: 1rem,
+      message-margin: 0.125rem 0
+    ),
+    sm: (
+      gap: 0.5rem,
+      margin: 0.5rem 0,
+      padding: 0.5rem,
+      message-margin: 0.125rem 0
+    ),
+    xs: (
+      gap: 0.25rem,
+      margin: 0.25rem 0,
+      padding: 0.25rem,
+      message-margin: 0
+    )
+  ),
+  $alert-sizes
+);
 
 // Scrollbar
 $scrollbar-background-color: transparent !default;
@@ -1264,9 +1335,14 @@ $progressbar-background-color: var(--rz-primary-lighter) !default;
 $progressbar-border-radius: 0 !default;
 $progressbar-height: 0.25rem !default;
 
-.rz-progressbar-label {
-  display: none !important;
+.rz-progressbar:has(.rz-progressbar-label) {
+  --rz-progressbar-height: 1.25rem;
 }
+
+// ProgressBarCircular
+$progressbar-circular-stroke-width: 0 !default;
+$progressbar-circular-value-stroke-width: 3px !default;
+$progressbar-circular-value-endpoint: square !default;
 
 // Chart
 $chart-axis-color: var(--rz-base-300) !default;
@@ -1274,6 +1350,9 @@ $chart-axis-label-color: var(--rz-base-500) !default;
 
 // Gauge
 $gauge-arc-scale-color: var(--rz-base-300) !default;
+
+// Timeline
+$rz-timeline-item-padding: 1rem !default;
 
 // Editor
 $editor-border: var(--rz-border-base-300)  !default;
@@ -1299,6 +1378,31 @@ $editor-content-background-color: var(--rz-base-background-color) !default;
 
 // Splitter
 $splitter-bar-background-color-active: var(--rz-primary) !default;
+
+// FormField
+$form-field-margin: 0.5rem 0 0 !default;
+$form-field-start-end-padding: 0 0.75rem !default;
+$form-field-filled-height: 3.375rem !default;
+$form-field-filled-padding: 1.4375rem 0.9375rem 0.4375rem !default;
+$form-field-filled-numeric-padding: 1.4375rem 1.25rem 0.4375rem 0.9375rem !default;
+$form-field-filled-background-color: var(--rz-base-200) !default;
+$form-field-filled-hover-background-color: var(--rz-base-300) !default;
+$form-field-filled-border: var(--rz-border-width) solid var(--rz-base-200) !default;
+$form-field-filled-hover-border: var(--rz-border-width) solid var(--rz-base-300) !default;
+$form-field-filled-focus-border: $form-field-filled-border !default;
+$form-field-filled-border-radius: var(--rz-border-radius) var(--rz-border-radius) 0 0 !default;
+$form-field-filled-label-floating-top: 0.5rem !default;
+$form-field-filled-hover-shadow: none !default;
+$form-field-filled-focus-shadow: none !default;
+$form-field-filled-underline-display: block !default;
+$form-field-hover-shadow: var(--rz-input-hover-shadow) !default;
+$form-field-focus-shadow: var(--rz-input-focus-shadow) !default;
+$form-field-label-padding: 0 0.25rem !default;
+$form-field-text-label-padding: 0 !default;
+$form-field-label-left: 0.6875rem !default;
+$form-field-label-textarea-top: 0.5rem !default;
+$form-field-label-floating-top: -0.5625rem !default;
+$form-field-helper-padding: 0 1rem !default;
 
 @import 'bootstrap';
 $bootstrap: true;

@@ -57,6 +57,22 @@ $rz-series-5: #fdd07a !default;
 $rz-series-6: #f8629b !default;
 $rz-series-7: #74d062 !default;
 $rz-series-8: #84a7ff !default;
+$rz-series-9: #4d99f9 !default;
+$rz-series-10: #8cecec !default;
+$rz-series-11: #fab793 !default;
+$rz-series-12: #da88ee !default;
+$rz-series-13: #fee3ab !default;
+$rz-series-14: #fb89c3 !default;
+$rz-series-15: #a2e389 !default;
+$rz-series-16: #b5caff !default;
+$rz-series-17: #1750f3 !default;
+$rz-series-18: #46d7d7 !default;
+$rz-series-19: #f46e4c !default;
+$rz-series-20: #b343db !default;
+$rz-series-21: #fdc55f !default;
+$rz-series-22: #f64485 !default;
+$rz-series-23: #58c544 !default;
+$rz-series-24: #6a93ff !default;
 
 $rz-primary-light: mix($rz-white, $rz-primary, 16%) !default;
 $rz-primary-lighter: rgba($rz-primary, .16) !default;
@@ -96,10 +112,11 @@ $rz-root-font-size: 16px !default;
 $rz-body-font-size: 0.875rem !default;
 $rz-body-line-height: 1.429 !default;
 $rz-body-background-color: var(--rz-base-100) !default;
-$rz-icon-size: 1.25rem !default;
 $rz-text-font-family: 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji',
 'Segoe UI Emoji', 'Segoe UI Symbol' !default;
+$rz-icon-font-family: 'Material Icons' !default;
+$rz-icon-size: 1.25rem !default;
 
 // Bootstrap variable overrides. DO NOT USE IN COMPONENTS!
 
@@ -181,6 +198,8 @@ $button-base-background-color: $rz-base-200 !default;
 $button-base-color: $rz-base-800 !default;
 $button-hover-shadow: none !default;
 $button-hover-gradient: linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%), linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0) 100%) !default;
+$button-focus-shadow: none !default;
+$button-focus-gradient: linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%), linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0) 100%) !default;
 $button-active-shadow: none !default;
 $button-active-gradient: $button-hover-gradient !default;
 $button-border-radius: $rz-border-radius !default;
@@ -190,6 +209,7 @@ $button-line-height: 1.25rem !default;
 $button-vertical-align: top !default;
 $button-background-size: 100% 0%, 100% 0% !default;
 $button-hover-background-size: 100% 200%, 100% 0%  !default;
+$button-focus-background-size: 100% 200%, 100% 0%  !default;
 $button-active-background-size: 100% 0%, 100% 200%  !default;
 
 // SelectButton
@@ -211,7 +231,8 @@ $badge-styles: () !default;
 $badge-styles: map-merge(
   (
     primary: (
-      background-color: var(--rz-primary)
+      background-color: var(--rz-primary),
+      color: var(--rz-on-rimary)
     ),
     light: (
       background-color: var(--rz-base-200),
@@ -222,19 +243,24 @@ $badge-styles: map-merge(
       color: var(--rz-secondary)
     ),
     info: (
-      background-color: var(--rz-info)
+      background-color: var(--rz-info),
+      color: var(--rz-on-info)
     ),
     warning: (
-      background-color: var(--rz-warning)
+      background-color: var(--rz-warning),
+      color: var(--rz-on-warning)
     ),
     error: (
-      background-color: var(--rz-danger)
+      background-color: var(--rz-danger),
+      color: var(--rz-on-danger)
     ),
     danger: (
-      background-color: var(--rz-danger)
+      background-color: var(--rz-danger),
+      color: var(--rz-on-danger)
     ),
     success: (
-      background-color: var(--rz-success)
+      background-color: var(--rz-success),
+      color: var(--rz-on-success)
     )
   ),
   $badge-styles
@@ -452,6 +478,9 @@ $datepicker-calendar-selected-hover-background-color: var(--rz-primary-light) !d
 $datepicker-calendar-border: none !default;
 $datepicker-calendar-border-radius: var(--rz-border-radius) !default;
 
+$datepicker-calendar-today-color: var(--rz-primary) !default;
+$datepicker-calendar-today-box-shadow: inset 0 0 0 1px var(--rz-primary) !default;
+
 $timepicker-background-color: $datepicker-header-background-color !default;
 $timepicker-separator-color: var(--rz-text-disabled-color) !default;
 $timepicker-button-background-color: var(--rz-primary) !default;
@@ -482,19 +511,17 @@ $slider-border-radius: calc(2 * var(--rz-border-radius)) !default;
 
 // Checkbox
 $checkbox-border-radius: var(--rz-border-radius);
+$checkbox-border-width: 1px !default;
 $checkbox-checked-background-color: var(--rz-base-background-color) !default;
 $checkbox-checked-hover-background-color: var(--rz-base-background-color) !default;
 $checkbox-checked-color: var(--rz-primary) !default;
 $checkbox-checked-shadow: none !default;
 $checkbox-checked-border: var(--rz-input-border) !default;
-$checkbox-checked-icon-background-color: var(--rz-primary) !default;
+$checkbox-checked-hover-border: var(--rz-input-hover-border) !default;
+$checkbox-icon-width: 1rem !default;
+$checkbox-icon-font-size: 1rem !default;
+$checkbox-checked-icon-background-color: var(--rz-base-background-color) !default;
 $checkbox-checked-icon-border-radius: calc(var(--rz-border-radius) / 2) !default;
-$checkbox-icon-width: 0.625rem !default;
-$checkbox-icon-height: $checkbox-icon-width !default;
-$checkbox-icon-font-size: 0 !default;
-$checkbox-tri-icon-width: $checkbox-icon-width !default;
-$checkbox-tri-icon-height: 0.125rem !default;
-$checkbox-tri-icon-font-size: $checkbox-icon-font-size !default;
 
 .rz-checkbox-list-vertical,
 .rz-checkbox-list-horizontal {
@@ -549,8 +576,8 @@ $dropdown-filter-border: var(--rz-border-base-200) !default;
 
 // ColorPicker
 $colorpicker-panel-shadow: $rz-shadow-3 !default;
-$colorpicker-value-border-radius: 50% !default;
-$colorpicker-item-border-radius: 50% !default;
+$colorpicker-value-border-radius: 1rem !default;
+$colorpicker-item-border-radius: 1rem !default;
 $colorpicker-item-shadow: $rz-shadow-inset-level-1 !default;
 $colorpicker-handle-shadow: $rz-shadow-inset-level-1, $rz-shadow-1, 0 0 0 1px rgba(0,0,0,.08);
 $colorpicker-input-labels-color: var(--rz-text-tertiary-color) !default;
@@ -595,6 +622,13 @@ $tooltip-shadow: $rz-shadow-4 !default;
 // Gauge
 $gauge-pointer-color: var(--rz-primary) !default;
 $gauge-arc-value-color: var(--rz-primary) !default;
+
+// FormField
+$form-field-hover-shadow: var(--rz-input-hover-shadow) !default;
+$form-field-focus-shadow: var(--rz-input-focus-shadow) !default;
+
+// Layout
+$layout-background-color: transparent !default;
 
 @import 'bootstrap';
 $bootstrap: true;

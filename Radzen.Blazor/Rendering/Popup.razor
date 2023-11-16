@@ -1,6 +1,6 @@
 @inherits RadzenComponent
 @using Microsoft.JSInterop
-<div @ref=@Element @onmousedown:preventDefault @attributes=@Attributes style=@Style id=@GetId()>
+<div @ref=@Element @onmousedown:preventDefault=@PreventDefault @attributes=@Attributes style=@Style id=@GetId()>
     @if (open || !Lazy)
     {
         @ChildContent
@@ -16,6 +16,9 @@
     public RenderFragment ChildContent { get; set; }
 
     [Parameter]
+    public bool PreventDefault { get; set; }
+
+    [Parameter]
     public EventCallback Open { get; set; }
 
     [Parameter]
@@ -24,31 +27,28 @@
     public async Task ToggleAsync(ElementReference target)
     {
         open = !open;
+        this.target = target;
 
         if (open)
         {
             await Open.InvokeAsync(null);
+            await JSRuntime.InvokeVoidAsync("Radzen.openPopup", target, GetId(), false, null, null, null, Reference, nameof(OnClose));
         }
-
-        this.target = target;
-        shouldToggle = true;
+        else
+        {
+            await CloseAsync();
+        }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    public async Task CloseAsync(ElementReference target)
     {
-        if (!firstRender)
-        {
-            if (shouldToggle)
-            {
-                await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", target, GetId(), false, Reference, nameof(OnClose));
-            }
+        open = false;
+        this.target = target;
 
-            shouldToggle = false;
-        }
+        await CloseAsync();
     }
 
     ElementReference target;
-    bool shouldToggle;
 
     [JSInvokable]
     public async Task OnClose()
@@ -61,15 +61,5 @@
     public async Task CloseAsync()
     {
         await JSRuntime.InvokeVoidAsync("Radzen.closePopup", GetId(), Reference, nameof(OnClose));
-    }
-
-    public override void Dispose()
-    {
-        base.Dispose();
-
-        if (IsJSRuntimeAvailable)
-        {
-            JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", GetId());
-        }
     }
 }

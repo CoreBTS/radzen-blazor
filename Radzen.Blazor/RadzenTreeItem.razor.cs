@@ -13,6 +13,13 @@ namespace Radzen.Blazor
     /// </summary>
     public partial class RadzenTreeItem : IDisposable
     {
+        /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the component.
+        /// </summary>
+        /// <value>The attributes.</value>
+        [Parameter(CaptureUnmatchedValues = true)]
+        public IReadOnlyDictionary<string, object> Attributes { get; set; }
+
         ClassList ContentClassList => ClassList.Create("rz-treenode-content")
                                                .Add("rz-treenode-content-selected", selected);
         ClassList IconClassList => ClassList.Create("rz-tree-toggler rzi")
@@ -224,9 +231,13 @@ namespace Radzen.Blazor
             if (parameters.DidParameterChange(nameof(Expanded), Expanded))
             {
                 // The Expanded property has changed - update the expanded state
-                expanded = parameters.GetValueOrDefault<bool>(nameof(Expanded));
-                clientExpanded = expanded;
-                shouldExpand = true;
+                var e = parameters.GetValueOrDefault<bool>(nameof(Expanded));
+                if (expanded != e)
+                {
+                    expanded = e;
+                    clientExpanded = expanded;
+                    shouldExpand = expanded;
+                }
             }
 
             if (parameters.DidParameterChange(nameof(Value), Value))
@@ -354,7 +365,7 @@ namespace Radzen.Blazor
             var p = ParentItem;
             while (p != null)
             {
-                if (value == false && p.AreAllChildrenUnchecked(i => !object.Equals(i, Value)))
+                if (value == false && (p.AreAllChildrenUnchecked(i => !object.Equals(i, Value)) || p.IsOneChildUnchecked()))
                 {
                     await Tree.SetCheckedValues(GetCheckedValues().Except(new object[] { p.Value }));
                 }

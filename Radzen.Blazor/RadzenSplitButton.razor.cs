@@ -41,6 +41,13 @@ namespace Radzen.Blazor
         public string Icon { get; set; }
 
         /// <summary>
+        /// Gets or sets the icon color.
+        /// </summary>
+        /// <value>The icon color.</value>
+        [Parameter]
+        public string IconColor { get; set; }
+
+        /// <summary>
         /// Gets or sets the image.
         /// </summary>
         /// <value>The image.</value>
@@ -76,11 +83,38 @@ namespace Radzen.Blazor
         public ButtonSize Size { get; set; } = ButtonSize.Medium;
 
         /// <summary>
+        /// Gets or sets a value indicating whether this instance busy text is shown.
+        /// </summary>
+        /// <value><c>true</c> if this instance busy text is shown; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool IsBusy { get; set; }
+
+        /// <summary>
+        /// Gets or sets the busy text.
+        /// </summary>
+        /// <value>The busy text.</value>
+        [Parameter]
+        public string BusyText { get; set; } = "";
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is disabled.
+        /// </summary>
+        /// <value><c>true</c> if this instance is disabled; otherwise, <c>false</c>.</value>
+        public bool IsDisabled { get => Disabled || IsBusy; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this <see cref="RadzenSplitButton"/> is disabled.
         /// </summary>
         /// <value><c>true</c> if disabled; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Disabled { get; set; }
+
+        /// <summary>
+        /// Gets or sets the value indication behaviour to always open popup with item on click and not invoke <see cref="Click"/> event.
+        /// </summary>
+        /// <value><c>true</c> to alway open popup with items; othersie, <c>false</c>. Default is <c>false</c>.</value>
+        [Parameter]
+        public bool AlwaysOpenPopup { get; set; }
 
         /// <summary>
         /// Gets or sets the click callback.
@@ -97,8 +131,15 @@ namespace Radzen.Blazor
         {
             if (!Disabled)
             {
-                await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
-                await Click.InvokeAsync(null);
+                if (AlwaysOpenPopup)
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.togglePopup", Element, PopupID);
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+                    await Click.InvokeAsync(null);
+                }
             }
         }
 
@@ -124,12 +165,12 @@ namespace Radzen.Blazor
 
         private string getButtonCss()
         {
-            return $"rz-button rz-button-{getButtonSize()} rz-variant-{Enum.GetName(typeof(Variant), Variant).ToLowerInvariant()} rz-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()} rz-shade-{Enum.GetName(typeof(Shade), Shade).ToLowerInvariant()} {(Disabled ? " rz-state-disabled" : "")}{(string.IsNullOrEmpty(Text) && !string.IsNullOrEmpty(Icon) ? " rz-button-icon-only" : "")}";
+            return $"rz-button rz-button-{getButtonSize()} rz-variant-{Enum.GetName(typeof(Variant), Variant).ToLowerInvariant()} rz-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()} rz-shade-{Enum.GetName(typeof(Shade), Shade).ToLowerInvariant()} {(IsDisabled ? " rz-state-disabled" : "")}{(string.IsNullOrEmpty(Text) && !string.IsNullOrEmpty(Icon) ? " rz-button-icon-only" : "")}";
         }
 
         private string getPopupButtonCss()
         {
-            return $"rz-splitbutton-menubutton rz-button rz-button-icon-only rz-button-{getButtonSize()} rz-variant-{Enum.GetName(typeof(Variant), Variant).ToLowerInvariant()} rz-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()} rz-shade-{Enum.GetName(typeof(Shade), Shade).ToLowerInvariant()}{(Disabled ? " rz-state-disabled" : "")}";
+            return $"rz-splitbutton-menubutton rz-button rz-button-icon-only rz-button-{getButtonSize()} rz-variant-{Enum.GetName(typeof(Variant), Variant).ToLowerInvariant()} rz-{Enum.GetName(typeof(ButtonStyle), ButtonStyle).ToLowerInvariant()} rz-shade-{Enum.GetName(typeof(Shade), Shade).ToLowerInvariant()}{(IsDisabled ? " rz-state-disabled" : "")}";
         }
 
         private string OpenPopupScript()

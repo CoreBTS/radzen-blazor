@@ -37,7 +37,7 @@ $paginator-summary-padding: 0 1.25rem 0 0 !default;
 $paginator-summary-font-size: var(--rz-body-font-size) !default;
 $paginator-summary-color: var(--rz-text-secondary-color) !default;
 
-$paginator-button-size: ".rz-button-md" !default;
+$paginator-button-size: "%button-md" !default;
 
 // Pager CSS variables
 
@@ -80,14 +80,13 @@ $paginator-button-size: ".rz-button-md" !default;
   --rz-paginator-summary-padding: #{$paginator-summary-padding};
   --rz-paginator-summary-font-size: #{$paginator-summary-font-size};
   --rz-paginator-summary-color: #{$paginator-summary-color};
-
-  --rz-paginator-button-size: #{$paginator-button-size};
 }
 
 .rz-paginator {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
 
   &.rz-align-right {
     justify-content: flex-end;
@@ -165,7 +164,7 @@ $paginator-button-size: ".rz-button-md" !default;
 }
 
 .rz-paginator-element {
-  @extend .rz-button, #{$paginator-button-size}, .rz-button-icon-only;
+  @extend %button, #{$paginator-button-size}, .rz-button-icon-only;
   letter-spacing: 0;
 }
 
@@ -261,6 +260,66 @@ $paginator-button-size: ".rz-button-md" !default;
 }
 
 @media (max-width: 768px) {
+    .rz-paginator-page {
+        &:not(.rz-state-active) {
+            display: none;
+        }
+    }
+
+    .rz-paginator {
+        display: grid;
+        grid-column-gap: 0.5rem;
+        grid-row-gap: 1rem;
+        grid-template-columns: repeat(9, 1fr);
+        text-align: center;
+
+        .rz-dropdown {
+            grid-column: 1/4;
+            width: auto;
+            margin: 0 !important;
+            text-align: left;
+        }
+
+        .rz-pagesize-text {
+            grid-column: 4/10;
+            margin: 0 !important;
+            text-align: left;
+        }
+    }
+
+    .rz-paginator-summary {
+        grid-column: 1/10;
+        padding: 0 !important;
+        text-align: left;
+    }
+
+    .rz-paginator-first {
+        grid-column: 1/3;
+        margin: 0 !important;
+    }
+
+    .rz-paginator-prev {
+        grid-column: 3/5;
+        margin: 0 !important;
+    }
+
+    .rz-paginator-pages {
+        grid-column: 5/6;
+        margin: 0 !important;
+    }
+
+    .rz-paginator-next {
+        grid-column: 6/8;
+        margin: 0 !important;
+    }
+
+    .rz-paginator-last {
+        grid-column: 8/10;
+        margin: 0 !important;
+    }
+}
+
+@container rz-lookup-panel (max-width: 768px) {
   .rz-paginator-page {
     &:not(.rz-state-active) {
       display: none;
@@ -316,5 +375,21 @@ $paginator-button-size: ".rz-button-md" !default;
   .rz-paginator-last {
     grid-column: 8/10;
     margin: 0 !important;
+  }
+}
+
+// Density
+.rz-paginator {
+  &.rz-density-compact {
+    --rz-paginator-padding: 0.25rem;
+    --rz-paginator-numeric-button-margin: 0 0.125rem;
+    --rz-paginator-first-button-margin: 0 0.25rem 0 0;
+    --rz-paginator-last-button-margin: 0 0 0 0.25rem;
+    --rz-paginator-dropdown-margin: 0 0 0 0.25rem;
+    --rz-paginator-summary-padding: 0 0.5rem 0 0;
+
+    .rz-paginator-element {
+      @extend %button-sm;
+    }
   }
 }

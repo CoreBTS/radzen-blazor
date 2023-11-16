@@ -34,6 +34,13 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
+        /// Gets or sets the template.
+        /// </summary>
+        /// <value>The template.</value>
+        [Parameter]
+        public RenderFragment<RadzenRadioButtonListItem<TValue>> Template { get; set; }
+
+        /// <summary>
         /// Gets or sets the value.
         /// </summary>
         /// <value>The value.</value>
@@ -97,6 +104,22 @@ namespace Radzen.Blazor
         internal void SetVisible(bool value)
         {
             Visible = value;
+        }
+
+        internal string GetItemId()
+        {
+            return GetId();
+        }
+
+        internal string GetItemCssClass()
+        {
+            return GetCssClass();
+        }
+
+        /// <inheritdoc />
+        protected override string GetComponentCssClass()
+        {
+            return "rz-radio-btn";
         }
     }
 }

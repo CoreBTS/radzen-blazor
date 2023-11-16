@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 
@@ -44,10 +45,13 @@ namespace Radzen
             {FilterOperator.EndsWith, "EndsWith"},
             {FilterOperator.Contains, "Contains"},
             {FilterOperator.DoesNotContain, "DoesNotContain"},
+            {FilterOperator.In, "In"},
+            {FilterOperator.NotIn, "NotIn"},
             {FilterOperator.IsNull, "=="},
             {FilterOperator.IsEmpty, "=="},
             {FilterOperator.IsNotNull, "!="},
-            {FilterOperator.IsNotEmpty, "!="}
+            {FilterOperator.IsNotEmpty, "!="},
+            {FilterOperator.Custom, ""}
         };
 
         /// <summary>
@@ -68,7 +72,10 @@ namespace Radzen
             {FilterOperator.IsNull, "eq"},
             {FilterOperator.IsEmpty, "eq"},
             {FilterOperator.IsNotNull, "ne"},
-            {FilterOperator.IsNotEmpty, "ne"}
+            {FilterOperator.IsNotEmpty, "ne"},
+            {FilterOperator.In, "in"},
+            {FilterOperator.NotIn, "in"},
+            {FilterOperator.Custom, ""}
         };
 
         /// <summary>
@@ -144,8 +151,8 @@ namespace Radzen
         public static string ToFilterString<T>(this IEnumerable<RadzenDataGridColumn<T>> columns)
         {
             Func<RadzenDataGridColumn<T>, bool> canFilter = (c) => c.Filterable && c.FilterPropertyType != null &&
-               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty) || c.GetFilterOperator() == FilterOperator.IsNotNull 
-                   || c.GetFilterOperator() == FilterOperator.IsNull || c.GetFilterOperator() == FilterOperator.IsEmpty 
+               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty) || c.GetFilterOperator() == FilterOperator.IsNotNull
+                   || c.GetFilterOperator() == FilterOperator.IsNull || c.GetFilterOperator() == FilterOperator.IsEmpty
                    || c.GetFilterOperator() == FilterOperator.IsNotEmpty)
                && c.GetFilterProperty() != null;
 
@@ -167,11 +174,11 @@ namespace Radzen
                     {
                         if (v != null)
                         {
-                            value = v is DateTime ? ((DateTime)v).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : v is DateTimeOffset ? ((DateTimeOffset)v).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : "";
+                            value = v is DateTime ? ((DateTime)v).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture) : v is DateTimeOffset ? ((DateTimeOffset)v).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture) : "";
                         }
                         if (sv != null)
                         {
-                            secondValue = sv is DateTime ? ((DateTime)sv).ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : sv is DateTimeOffset ? ((DateTimeOffset)sv).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ") : "";
+                            secondValue = sv is DateTime ? ((DateTime)sv).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture) : sv is DateTimeOffset ? ((DateTimeOffset)sv).UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture) : "";
                         }
                     }
                     else if (PropertyAccess.IsEnum(column.FilterPropertyType) || PropertyAccess.IsNullableEnum(column.FilterPropertyType))
@@ -190,7 +197,7 @@ namespace Radzen
                         var enumerableValue = ((IEnumerable)(v != null ? v : Enumerable.Empty<object>())).AsQueryable();
                         var enumerableSecondValue = ((IEnumerable)(sv != null ? sv : Enumerable.Empty<object>())).AsQueryable();
 
-                        var enumerableValueAsString = "new []{" + String.Join(",", 
+                        var enumerableValueAsString = "new []{" + String.Join(",",
                                 (enumerableValue.ElementType == typeof(string) ? enumerableValue.Cast<string>().Select(i => $@"""{i}""").Cast<object>() : enumerableValue.Cast<object>())) + "}";
 
                         var enumerableSecondValueAsString = "new []{" + String.Join(",",
@@ -234,11 +241,11 @@ namespace Radzen
                     }
                     else
                     {
-                        value = (string)Convert.ChangeType(column.GetFilterValue(), typeof(string));
-                        secondValue = (string)Convert.ChangeType(column.GetSecondFilterValue(), typeof(string));
+                        value = (string)Convert.ChangeType(column.GetFilterValue(), typeof(string), CultureInfo.InvariantCulture);
+                        secondValue = (string)Convert.ChangeType(column.GetSecondFilterValue(), typeof(string), CultureInfo.InvariantCulture);
                     }
 
-                    if (!string.IsNullOrEmpty(value) || column.GetFilterOperator() == FilterOperator.IsNotNull 
+                    if (!string.IsNullOrEmpty(value) || column.GetFilterOperator() == FilterOperator.IsNotNull
                                                     || column.GetFilterOperator() == FilterOperator.IsNull
                                                     || column.GetFilterOperator() == FilterOperator.IsEmpty
                                                     || column.GetFilterOperator() == FilterOperator.IsNotEmpty)
@@ -297,8 +304,9 @@ namespace Radzen
                 linqOperator = "==";
             }
 
-            var value = !second ? (string)Convert.ChangeType(column.FilterValue, typeof(string)) : 
+            var value = !second ? (string)Convert.ChangeType(column.FilterValue, typeof(string)) :
                 (string)Convert.ChangeType(column.SecondFilterValue, typeof(string));
+            value = value?.Replace("\"", "\\\"");
 
             var columnType = column.Type;
             var columnFormat = column.Format;
@@ -309,11 +317,11 @@ namespace Radzen
 
                 if (columnFormat == "date-time" || columnFormat == "date")
                 {
-                    var dateTimeValue = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    var dateTimeValue = DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
                     var finalDate = dateTimeValue.TimeOfDay == TimeSpan.Zero ? dateTimeValue.Date : dateTimeValue;
-                    var dateFormat = dateTimeValue.TimeOfDay == TimeSpan.Zero ? "yyyy-MM-dd" : "yyyy-MM-ddTHH:mm:ssZ";
+                    var dateFormat = dateTimeValue.TimeOfDay == TimeSpan.Zero ? "yyyy-MM-dd" : "yyyy-MM-ddTHH:mm:ss.fffZ";
 
-                    return $@"{property} {linqOperator} DateTime(""{finalDate.ToString(dateFormat)}"")";
+                    return $@"{property} {linqOperator} DateTime(""{finalDate.ToString(dateFormat, CultureInfo.InvariantCulture)}"")";
                 }
                 else if (columnFormat == "time")
                 {
@@ -379,6 +387,11 @@ namespace Radzen
 
             var columnFilterOperator = !second ? column.GetFilterOperator() : column.GetSecondFilterOperator();
 
+            if (columnFilterOperator == FilterOperator.Custom)
+            {
+                return "";
+            }
+
             var linqOperator = LinqFilterOperators[columnFilterOperator];
             if (linqOperator == null)
             {
@@ -388,7 +401,8 @@ namespace Radzen
             if (column.FilterPropertyType == typeof(string))
             {
                 string filterCaseSensitivityOperator = column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? ".ToLower()" : "";
-
+                value = value?.Replace("\"", "\\\"");
+                
                 if (!string.IsNullOrEmpty(value) && columnFilterOperator == FilterOperator.Contains)
                 {
                     return $@"({property} == null ? """" : {property}){filterCaseSensitivityOperator}.Contains(""{value}""{filterCaseSensitivityOperator})";
@@ -432,11 +446,11 @@ namespace Radzen
             }
             else if (PropertyAccess.IsNumeric(column.FilterPropertyType))
             {
-                if (column.GetFilterOperator() == FilterOperator.IsNull || column.GetFilterOperator() == FilterOperator.IsNotNull)
+                if (columnFilterOperator == FilterOperator.IsNull || columnFilterOperator == FilterOperator.IsNotNull)
                 {
                     return $"{property} {linqOperator} null";
                 }
-                else if (column.GetFilterOperator() == FilterOperator.IsEmpty || column.GetFilterOperator() == FilterOperator.IsNotEmpty)
+                else if (columnFilterOperator == FilterOperator.IsEmpty || columnFilterOperator == FilterOperator.IsNotEmpty)
                 {
                     return $@"{property} {linqOperator} """"";
                 }
@@ -445,27 +459,27 @@ namespace Radzen
                     return $"{property} {linqOperator} {value}";
                 }
             }
-            else if (column.FilterPropertyType == typeof(DateTime) || 
+            else if (column.FilterPropertyType == typeof(DateTime) ||
                     column.FilterPropertyType == typeof(DateTime?) ||
-                    column.FilterPropertyType == typeof(DateTimeOffset) || 
+                    column.FilterPropertyType == typeof(DateTimeOffset) ||
                     column.FilterPropertyType == typeof(DateTimeOffset?))
             {
-                if (column.GetFilterOperator() == FilterOperator.IsNull || column.GetFilterOperator() == FilterOperator.IsNotNull)
+                if (columnFilterOperator == FilterOperator.IsNull || columnFilterOperator == FilterOperator.IsNotNull)
                 {
                     return $"{property} {linqOperator} null";
                 }
-                else if (column.GetFilterOperator() == FilterOperator.IsEmpty || column.GetFilterOperator() == FilterOperator.IsNotEmpty)
+                else if (columnFilterOperator == FilterOperator.IsEmpty || columnFilterOperator == FilterOperator.IsNotEmpty)
                 {
                     return $@"{property} {linqOperator} """"";
                 }
                 else
                 {
-                    var dateTimeValue = DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind);
+                    var dateTimeValue = DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind);
                     var finalDate = dateTimeValue.TimeOfDay == TimeSpan.Zero ? dateTimeValue.Date : dateTimeValue;
-                    var dateFormat = dateTimeValue.TimeOfDay == TimeSpan.Zero ? "yyyy-MM-dd" : "yyyy-MM-ddTHH:mm:ssZ";
+                    var dateFormat = dateTimeValue.TimeOfDay == TimeSpan.Zero ? "yyyy-MM-dd" : "yyyy-MM-ddTHH:mm:ss.fffZ";
                     var dateFunction = column.FilterPropertyType == typeof(DateTimeOffset) || column.FilterPropertyType == typeof(DateTimeOffset?) ? "DateTimeOffset" : "DateTime";
 
-                    return $@"{property} {linqOperator} {dateFunction}(""{finalDate.ToString(dateFormat)}"")";
+                    return $@"{property} {linqOperator} {dateFunction}(""{finalDate.ToString(dateFormat, CultureInfo.InvariantCulture)}"")";
                 }
             }
             else if (column.FilterPropertyType == typeof(bool) || column.FilterPropertyType == typeof(bool?))
@@ -474,11 +488,11 @@ namespace Radzen
             }
             else if (column.FilterPropertyType == typeof(Guid) || column.FilterPropertyType == typeof(Guid?))
             {
-                if (column.GetFilterOperator() == FilterOperator.IsNull || column.GetFilterOperator() == FilterOperator.IsNotNull)
+                if (columnFilterOperator == FilterOperator.IsNull || columnFilterOperator == FilterOperator.IsNotNull)
                 {
                     return $"{property} {linqOperator} null";
                 }
-                else if (column.GetFilterOperator() == FilterOperator.IsEmpty || column.GetFilterOperator() == FilterOperator.IsNotEmpty)
+                else if (columnFilterOperator == FilterOperator.IsEmpty || columnFilterOperator == FilterOperator.IsNotEmpty)
                 {
                     return $@"{property} {linqOperator} """"";
                 }
@@ -519,7 +533,7 @@ namespace Radzen
             {
                 if (columnFormat == "date-time" || columnFormat == "date")
                 {
-                    return $"{property} {columnFilterOperator} {DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
+                    return $"{property} {columnFilterOperator} {DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)}";
                 }
                 else if (columnFormat == "time")
                 {
@@ -531,8 +545,8 @@ namespace Radzen
                 }
                 else if (!string.IsNullOrEmpty(value) && columnFilterOperator == "contains")
                 {
-                    return column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? 
-                        $"contains({property}, tolower('{value}'))" : 
+                    return column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ?
+                        $"contains({property}, tolower('{value}'))" :
                         $"contains({property}, '{value}')";
                 }
                 else if (!string.IsNullOrEmpty(value) && columnFilterOperator == "DoesNotContain")
@@ -543,14 +557,14 @@ namespace Radzen
                 }
                 else if (!string.IsNullOrEmpty(value) && columnFilterOperator == "startswith")
                 {
-                    return column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? 
+                    return column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ?
                         $"startswith({property}, tolower('{value}'))" :
                         $"startswith({property}, '{value}')";
                 }
                 else if (!string.IsNullOrEmpty(value) && columnFilterOperator == "endswith")
                 {
                     return column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ?
-                        $"endswith({property}, tolower('{value}'))" : 
+                        $"endswith({property}, tolower('{value}'))" :
                         $"endswith({property}, '{value}')";
                 }
                 else if (!string.IsNullOrEmpty(value) && columnFilterOperator == "eq")
@@ -583,25 +597,29 @@ namespace Radzen
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="column">The column.</param>
-        /// <param name="second">if set to <c>true</c> [second].</param>
+        /// <param name="filterValue">The specific value to filter by</param>
+        /// <param name="columnFilterOperator">The operator used to compare to <paramref name="filterValue"/></param>
         /// <returns>System.String.</returns>
-        private static string GetColumnODataFilter<T>(RadzenDataGridColumn<T> column, bool second = false)
+        internal static string GetColumnODataFilter<T>(RadzenDataGridColumn<T> column, object filterValue, FilterOperator columnFilterOperator)
         {
             var property = column.GetFilterProperty().Replace('.', '/');
 
-            var columnFilterOperator = !second ? column.GetFilterOperator() : column.GetSecondFilterOperator();
             var odataFilterOperator = ODataFilterOperators[columnFilterOperator];
 
-            var value = IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) ? null :
-                    !second ? (string)Convert.ChangeType(column.GetFilterValue(), typeof(string)) :
-                        (string)Convert.ChangeType(column.GetSecondFilterValue(), typeof(string));
+            var value = IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string)
+                ? null
+                : (string)Convert.ChangeType(filterValue, typeof(string), CultureInfo.InvariantCulture);
 
             if (column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive && column.FilterPropertyType == typeof(string))
             {
                 property = $"tolower({property})";
             }
 
-            if (column.FilterPropertyType == typeof(string))
+            if (PropertyAccess.IsEnum(column.FilterPropertyType) || PropertyAccess.IsNullableEnum(column.FilterPropertyType))
+            {
+                return $"{property} {odataFilterOperator} '{value}'";
+            }
+            else if (column.FilterPropertyType == typeof(string))
             {
                 if (!string.IsNullOrEmpty(value) && columnFilterOperator == FilterOperator.Contains)
                 {
@@ -650,12 +668,14 @@ namespace Radzen
             }
             else if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string))
             {
-                var v = !second ? column.GetFilterValue() : column.GetSecondFilterValue();
-
-                var enumerableValue = ((IEnumerable)(v != null ? v : Enumerable.Empty<object>())).AsQueryable();
+                var enumerableValue = ((IEnumerable)(filterValue != null ? filterValue : Enumerable.Empty<object>())).AsQueryable();
 
                 var enumerableValueAsString = "(" + String.Join(",",
                         (enumerableValue.ElementType == typeof(string) ? enumerableValue.Cast<string>().Select(i => $@"'{i}'").Cast<object>() : enumerableValue.Cast<object>())) + ")";
+
+                var enumerableValueAsStringOrForAny = String.Join(" or ",
+                    (enumerableValue.ElementType == typeof(string) ? enumerableValue.Cast<string>()
+                        .Select(i => $@"i/{property} eq '{i}'").Cast<object>() : enumerableValue.Cast<object>().Select(i => $@"i/{property} eq {i}").Cast<object>()));
 
                 if (enumerableValue.Any() && columnFilterOperator == FilterOperator.Contains)
                 {
@@ -664,6 +684,14 @@ namespace Radzen
                 else if (enumerableValue.Any() && columnFilterOperator == FilterOperator.DoesNotContain)
                 {
                     return $"not({property} in {enumerableValueAsString})";
+                }
+                else if (enumerableValue.Any() && columnFilterOperator == FilterOperator.In)
+                {
+                    return $"{column.Property}/any(i:{enumerableValueAsStringOrForAny})";
+                }
+                else if (enumerableValue.Any() && columnFilterOperator == FilterOperator.NotIn)
+                {
+                    return $"not({column.Property}/any(i: {enumerableValueAsStringOrForAny}))";
                 }
             }
             else if (PropertyAccess.IsNumeric(column.FilterPropertyType))
@@ -700,7 +728,7 @@ namespace Radzen
                 }
                 else
                 {
-                    return $"{property} {odataFilterOperator} {DateTime.Parse(value, null, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")}";
+                    return $"{property} {odataFilterOperator} {DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)}";
                 }
             }
             else if (column.FilterPropertyType == typeof(Guid) || column.FilterPropertyType == typeof(Guid?))
@@ -774,7 +802,7 @@ namespace Radzen
         public static string ToODataFilterString<T>(this IEnumerable<RadzenDataGridColumn<T>> columns)
         {
             Func<RadzenDataGridColumn<T>, bool> canFilter = (c) => c.Filterable && c.FilterPropertyType != null &&
-               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty) 
+               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty)
                 || c.GetFilterOperator() == FilterOperator.IsNotNull || c.GetFilterOperator() == FilterOperator.IsNull
                 || c.GetFilterOperator() == FilterOperator.IsEmpty || c.GetFilterOperator() == FilterOperator.IsNotEmpty)
                && c.GetFilterProperty() != null;
@@ -805,11 +833,11 @@ namespace Radzen
 
                         if (secondValue == null)
                         {
-                            whereList.Add(GetColumnODataFilter(column));
+                            whereList.Add(column.GetColumnODataFilter());
                         }
                         else
-                        {   
-                            whereList.Add($"({GetColumnODataFilter(column)} {booleanOperator} {GetColumnODataFilter(column, true)})");
+                        {
+                            whereList.Add($"({column.GetColumnODataFilter()} {booleanOperator} {column.GetColumnODataFilter(second: true)})");
                         }
                     }
                 }
@@ -878,7 +906,7 @@ namespace Radzen
                             index++;
                         }
                     }
-                    else 
+                    else
                     {
                         var firstFilter = comparison == "StartsWith" || comparison == "EndsWith" || comparison == "Contains" ?
                             $@"{property}{filterCaseSensitivityOperator}.{comparison}(@{index}{filterCaseSensitivityOperator})" :
@@ -903,7 +931,10 @@ namespace Radzen
             return source;
         }
 
-        private static bool IsEnumerable(Type type)
+        /// <summary>
+        /// Gets if type is IEnumerable.
+        /// </summary>
+        public static bool IsEnumerable(Type type)
         {
             return typeof(IEnumerable).IsAssignableFrom(type) || typeof(IEnumerable<>).IsAssignableFrom(type);
         }
@@ -918,7 +949,7 @@ namespace Radzen
         public static IQueryable<T> Where<T>(this IQueryable<T> source, IEnumerable<RadzenDataGridColumn<T>> columns)
         {
             Func<RadzenDataGridColumn<T>, bool> canFilter = (c) => c.Filterable && c.FilterPropertyType != null &&
-               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty) 
+               (!(c.GetFilterValue() == null || c.GetFilterValue() as string == string.Empty)
                 || c.GetFilterOperator() == FilterOperator.IsNotNull || c.GetFilterOperator() == FilterOperator.IsNull
                 || c.GetFilterOperator() == FilterOperator.IsEmpty || c.GetFilterOperator() == FilterOperator.IsNotEmpty)
                && c.GetFilterProperty() != null;
@@ -939,14 +970,14 @@ namespace Radzen
                         property = $"({property})";
                     }
 
-                    if (column.FilterPropertyType == typeof(string) && 
+                    if (column.FilterPropertyType == typeof(string) &&
                         !(column.GetFilterOperator() == FilterOperator.IsNotNull || column.GetFilterOperator() == FilterOperator.IsNull
                             || column.GetFilterOperator() == FilterOperator.IsEmpty || column.GetFilterOperator() == FilterOperator.IsNotEmpty))
                     {
                         property = $@"({property} == null ? """" : {property})";
                     }
 
-                    string filterCaseSensitivityOperator = column.FilterPropertyType == typeof(string) 
+                    string filterCaseSensitivityOperator = column.FilterPropertyType == typeof(string)
                            && column.GetFilterOperator() != FilterOperator.IsNotNull && column.GetFilterOperator() != FilterOperator.IsNull
                            && column.GetFilterOperator() != FilterOperator.IsEmpty && column.GetFilterOperator() != FilterOperator.IsNotEmpty
                            && column.Grid.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ? ".ToLower()" : "";
@@ -968,7 +999,7 @@ namespace Radzen
                             {
                                 whereList.Add($@"{property}{filterCaseSensitivityOperator}.{comparison}(@{index}{filterCaseSensitivityOperator})", new object[] { column.GetFilterValue() });
                             }
-                            
+
                             index++;
                         }
                         else if (comparison == "DoesNotContain")
@@ -981,8 +1012,23 @@ namespace Radzen
                             {
                                 whereList.Add($@"!{property}{filterCaseSensitivityOperator}.Contains(@{index}{filterCaseSensitivityOperator})", new object[] { column.GetFilterValue() });
                             }
-                            
+
                             index++;
+                        }
+                        else if (comparison == "In" || comparison == "NotIn")
+                        {
+                            if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) && 
+                                    IsEnumerable(column.PropertyType) && column.PropertyType != typeof(string))
+                            {
+                                whereList.Add($@"{(comparison == "NotIn" ? "!" : "")}{property}.Any(i => i in @{index})", new object[] { column.GetFilterValue() });
+                                index++;
+                            }
+                            else if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) && 
+                                column.Property != column.FilterProperty && !string.IsNullOrEmpty(column.FilterProperty))
+                            {
+                                whereList.Add($@"{(comparison == "NotIn" ? "!" : "")}{column.Property}.Any(i => i.{column.FilterProperty} in @{index})", new object[] { column.GetFilterValue() });
+                                index++;
+                            }
                         }
                         else if (!(IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string)))
                         {
@@ -995,7 +1041,7 @@ namespace Radzen
                         var secondComparison = LinqFilterOperators[column.GetSecondFilterOperator()];
 
                         if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) &&
-                            (comparison == "Contains" || comparison == "DoesNotContain") && 
+                            (comparison == "Contains" || comparison == "DoesNotContain") &&
                                 (secondComparison == "Contains" || secondComparison == "DoesNotContain"))
                         {
                             var firstFilter = $@"{(comparison == "DoesNotContain" ? "!" : "")}(@{index}).Contains({property})";
@@ -1048,7 +1094,7 @@ namespace Radzen
                 || c.FilterOperator == FilterOperator.IsEmpty || c.FilterOperator == FilterOperator.IsNotEmpty)
                && c.Property != null;
 
-            if (dataFilter.Filters.Where(canFilter).Any())
+            if (dataFilter.Filters.Concat(dataFilter.Filters.SelectManyRecursive(i => i.Filters ?? Enumerable.Empty<CompositeFilterDescriptor>())).Where(canFilter).Any())
             {
                 var index = 0;
                 var filterExpressions = new List<string>();
@@ -1085,6 +1131,12 @@ namespace Radzen
             }
             else
             {
+                if (filter.Property == null || (filter.FilterValue == null &&
+                    filter.FilterOperator != FilterOperator.IsNull && filter.FilterOperator != FilterOperator.IsNotNull))
+                {
+                    return;
+                }
+
                 var property = PropertyAccess.GetProperty(filter.Property);
 
                 if (property.IndexOf(".") != -1)
@@ -1152,9 +1204,157 @@ namespace Radzen
                 }
                 else if (!(IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string)))
                 {
+                    var value = filter.FilterValue;
+
+                    if (column.FilterPropertyType == typeof(DateTimeOffset) || column.FilterPropertyType == typeof(DateTimeOffset?))
+                    {
+                        value = filter.FilterValue != null ? (object)(new DateTimeOffset((DateTime)filter.FilterValue, TimeSpan.Zero)) : null;
+                    }
+
                     filterExpressions.Add($@"{property}{filterCaseSensitivityOperator} {comparison} @{index}{filterCaseSensitivityOperator}");
-                    filterValues.Add(new object[] { filter.FilterValue });
+                    filterValues.Add(new object[] { value });
                     index++;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Converts to OData filter expression.
+        /// </summary>
+        /// <param name="dataFilter">The DataFilter.</param>
+        /// <returns>System.String.</returns>
+        public static string ToODataFilterString<T>(this RadzenDataFilter<T> dataFilter)
+        {
+            Func<CompositeFilterDescriptor, bool> canFilter = (c) => dataFilter.properties.Where(col => col.Property == c.Property).FirstOrDefault()?.FilterPropertyType != null &&
+               (!(c.FilterValue == null || c.FilterValue as string == string.Empty)
+                || c.FilterOperator == FilterOperator.IsNotNull || c.FilterOperator == FilterOperator.IsNull
+                || c.FilterOperator == FilterOperator.IsEmpty || c.FilterOperator == FilterOperator.IsNotEmpty)
+               && c.Property != null;
+
+            if (dataFilter.Filters.Concat(dataFilter.Filters.SelectManyRecursive(i => i.Filters ?? Enumerable.Empty<CompositeFilterDescriptor>())).Where(canFilter).Any())
+            {
+                var filterExpressions = new List<string>();
+
+                foreach (var filter in dataFilter.Filters)
+                {
+                    AddODataExpression(canFilter, filter, ref filterExpressions, dataFilter);
+                }
+
+                return filterExpressions.Any() ?
+                    string.Join($" {dataFilter.LogicalFilterOperator.ToString().ToLower()} ", filterExpressions)
+                    : "";
+            }
+            return "";
+        }
+
+        private static void AddODataExpression<T>(Func<CompositeFilterDescriptor, bool> canFilter, CompositeFilterDescriptor filter, ref List<string> filterExpressions, RadzenDataFilter<T> dataFilter)
+        {
+            if (filter.Filters != null)
+            {
+                var innerFilterExpressions = new List<string>();
+
+                foreach (var f in filter.Filters)
+                {
+                    AddODataExpression(canFilter, f, ref innerFilterExpressions, dataFilter);
+                }
+
+                if (innerFilterExpressions.Any())
+                {
+                    filterExpressions.Add("(" + string.Join($" {filter.LogicalFilterOperator.ToString().ToLower()} ", innerFilterExpressions) + ")");
+                }
+            }
+            else
+            {
+                if (filter.Property == null || (filter.FilterValue == null &&
+                    filter.FilterOperator != FilterOperator.IsNull && filter.FilterOperator != FilterOperator.IsNotNull))
+                {
+                    return;
+                }
+
+                var property = filter.Property.Replace('.', '/');
+
+                var column = dataFilter.properties.Where(c => c.Property == filter.Property).FirstOrDefault();
+                if (column == null) return;
+
+                if (dataFilter.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive && column.FilterPropertyType == typeof(string))
+                {
+                    property = $"tolower({property})";
+                }
+
+                if (filter.FilterOperator == FilterOperator.StartsWith || filter.FilterOperator == FilterOperator.EndsWith
+                    || filter.FilterOperator == FilterOperator.Contains || filter.FilterOperator == FilterOperator.DoesNotContain)
+                {
+                    if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string) &&
+                        (filter.FilterOperator == FilterOperator.Contains || filter.FilterOperator == FilterOperator.DoesNotContain))
+                    {
+                        var enumerableValue = ((IEnumerable)(filter.FilterValue != null ? filter.FilterValue : Enumerable.Empty<object>())).AsQueryable();
+                        var firstItemType = enumerableValue.Any() ? enumerableValue.FirstOrDefault().GetType() : typeof(object);
+
+                        var enumerableValueAsString = "(" + String.Join(",",
+                                (enumerableValue.ElementType == typeof(string) || firstItemType == typeof(string) ? enumerableValue.Cast<string>().Select(i => $@"'{i}'").Cast<object>() : enumerableValue.Cast<object>())) + ")";
+
+                        if (enumerableValue.Any() && filter.FilterOperator == FilterOperator.Contains)
+                        {
+                            filterExpressions.Add($"{property} in {enumerableValueAsString}");
+                        }
+                        else if (enumerableValue.Any() && filter.FilterOperator == FilterOperator.DoesNotContain)
+                        {
+                            filterExpressions.Add($"not({property} in {enumerableValueAsString})");
+                        }
+                    }
+                    else
+                    {
+                        var expression = dataFilter.FilterCaseSensitivity == FilterCaseSensitivity.CaseInsensitive ?
+                            $"{ODataFilterOperators[filter.FilterOperator]}({property}, tolower('{filter.FilterValue}'))" :
+                            $"{ODataFilterOperators[filter.FilterOperator]}({property}, '{filter.FilterValue}')";
+
+                        if (filter.FilterOperator == FilterOperator.DoesNotContain)
+                        {
+                            expression = $"not({expression})";
+                        }
+
+                        filterExpressions.Add(expression);
+                    }
+                }
+                else
+                {
+                    if (IsEnumerable(column.FilterPropertyType) && column.FilterPropertyType != typeof(string))
+                        return;
+
+                    var value = $"{filter.FilterValue}";
+
+                    if (filter.FilterOperator == FilterOperator.IsNull || filter.FilterOperator == FilterOperator.IsNotNull)
+                    {
+                        value = $"null";
+                    }
+                    else if (filter.FilterOperator == FilterOperator.IsEmpty || filter.FilterOperator == FilterOperator.IsNotEmpty)
+                    {
+                        value = $"''";
+                    }
+                    else if (column.FilterPropertyType == typeof(string) || PropertyAccess.IsEnum(column.FilterPropertyType) || PropertyAccess.IsNullableEnum(column.FilterPropertyType))
+                    {
+                        value = $"'{value}'";
+                    }
+                    else if (column.FilterPropertyType == typeof(DateTime) || column.FilterPropertyType == typeof(DateTime?))
+                    {
+                        try
+                        {
+                            value = Convert.ToDateTime(filter.FilterValue).ToString(CultureInfo.InvariantCulture);
+                        }
+                        catch
+                        {
+                            //
+                        }
+
+                        value = $"{DateTime.Parse(value, CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind).ToString("yyyy-MM-ddTHH:mm:ss.fffZ", CultureInfo.InvariantCulture)}";
+                    }
+                    else if (column.FilterPropertyType == typeof(bool) || column.FilterPropertyType == typeof(bool?))
+                    {
+                        value = $"{value?.ToLower()}";
+                    }
+
+                    filterExpressions.Add($@"{property} {ODataFilterOperators[filter.FilterOperator]} {value}");
                 }
             }
         }

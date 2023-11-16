@@ -42,13 +42,13 @@ namespace Radzen.Blazor
         public ColorScheme ColorScheme { get; set; }
 
         /// <summary>
-        /// A callback that will be invoked when the user clicks on a series. 
+        /// A callback that will be invoked when the user clicks on a series.
         /// </summary>
         [Parameter]
         public EventCallback<SeriesClickEventArgs> SeriesClick { get; set; }
 
         /// <summary>
-        /// A callback that will be invoked when the user clicks on a legend. 
+        /// A callback that will be invoked when the user clicks on a legend.
         /// </summary>
         [Parameter]
         public EventCallback<LegendClickEventArgs> LegendClick { get; set; }
@@ -207,12 +207,7 @@ namespace Radzen.Blazor
             ValueScale.Fit(ValueAxis.TickDistance);
             CategoryScale.Fit(CategoryAxis.TickDistance);
 
-            var stateHasChanged = false;
-
-            if (!ValueScale.IsEqualTo(valueScale))
-            {
-                stateHasChanged = true;
-            }
+            var stateHasChanged = !ValueScale.IsEqualTo(valueScale);
 
             if (!CategoryScale.IsEqualTo(categoryScale))
             {
@@ -254,6 +249,7 @@ namespace Radzen.Blazor
             }
         }
 
+        ChartTooltipContainer chartTooltipContainer;
         RenderFragment tooltip;
         object tooltipData;
         double mouseX;
@@ -274,6 +270,18 @@ namespace Radzen.Blazor
         }
 
         /// <summary>
+        /// The minimum pixel distance from a data point to the mouse cursor required for the SeriesClick event to fire. Set to 25 by default.
+        /// </summary>
+        [Parameter]
+        public int ClickTolerance { get; set; } = 25;
+
+        /// <summary>
+        /// The minimum pixel distance from a data point to the mouse cursor required by the tooltip to show. Set to 25 by default.
+        /// </summary>
+        [Parameter]
+        public int TooltipTolerance { get; set; } = 25;
+
+        /// <summary>
         /// Invoked via interop when the user clicks the RadzenChart. Raises the <see cref="SeriesClick" /> handler.
         /// </summary>
         /// <param name="x">The x.</param>
@@ -281,19 +289,36 @@ namespace Radzen.Blazor
         [JSInvokable]
         public async Task Click(double x, double y)
         {
+            IChartSeries closestSeries = null;
+            object closestSeriesData = null;
+            double closestSeriesDistanceSquared = ClickTolerance * ClickTolerance;
+
+            var queryX = x - MarginLeft;
+            var queryY = y - MarginTop;
+
             foreach (var series in Series)
             {
-                if (series.Visible && series.Contains(mouseX - MarginLeft, mouseY - MarginTop, 5))
+                if (series.Visible)
                 {
-                    var data = series.DataAt(mouseX - MarginLeft, mouseY - MarginTop);
-
-                    if (data != null)
+                    var (seriesData, seriesDataPoint) = series.DataAt(queryX, queryY);
+                    if (seriesData != null)
                     {
-                        await series.InvokeClick(SeriesClick, data);
+                        double xDelta = queryX - seriesDataPoint.X;
+                        double yDelta = queryY - seriesDataPoint.Y;
+                        double squaredDistance = xDelta * xDelta + yDelta * yDelta;
+                        if (squaredDistance < closestSeriesDistanceSquared)
+                        {
+                            closestSeries = series;
+                            closestSeriesData = seriesData; 
+                            closestSeriesDistanceSquared = squaredDistance;
+                        }
                     }
-
-                    return;
                 }
+            }
+
+            if (closestSeriesData != null)
+            {
+                await closestSeries.InvokeClick(SeriesClick, closestSeriesData);
             }
         }
 
@@ -302,6 +327,12 @@ namespace Radzen.Blazor
             if (Tooltip.Visible)
             {
                 var orderedSeries = Series.OrderBy(s => s.RenderingOrder).Reverse();
+                IChartSeries closestSeries = null;
+                object closestSeriesData = null;
+                double closestSeriesDistanceSquared = TooltipTolerance * TooltipTolerance;
+
+                var queryX = mouseX - MarginLeft;
+                var queryY = mouseY - MarginTop;
 
                 foreach (var series in orderedSeries)
                 {
@@ -309,32 +340,43 @@ namespace Radzen.Blazor
                     {
                         foreach (var overlay in series.Overlays.Reverse())
                         {
-                            if (overlay.Visible && overlay.Contains(mouseX - MarginLeft, mouseY - MarginTop, 25))
+                            if (overlay.Visible && overlay.Contains(mouseX - MarginLeft, mouseY - MarginTop, TooltipTolerance))
                             {
                                 tooltipData = null;
                                 tooltip = overlay.RenderTooltip(mouseX, mouseY, MarginLeft, MarginTop);
-                                StateHasChanged();
+                                chartTooltipContainer.Refresh();
                                 await Task.Yield();
-                                
+
                                 return;
                             }
                         }
 
-                        if (series.Contains(mouseX - MarginLeft, mouseY - MarginTop, 25))
+                        var (seriesData, seriesDataPoint) = series.DataAt(queryX, queryY);
+                        if (seriesData != null)
                         {
-                            var data = series.DataAt(mouseX - MarginLeft, mouseY - MarginTop);
-
-                            if (data != tooltipData)
+                            double xDelta = queryX - seriesDataPoint.X;
+                            double yDelta = queryY - seriesDataPoint.Y;
+                            double squaredDistance = xDelta * xDelta + yDelta * yDelta;
+                            if (squaredDistance < closestSeriesDistanceSquared)
                             {
-                                tooltipData = data;
-                                tooltip = series.RenderTooltip(data, MarginLeft, MarginTop);
-                                StateHasChanged();
-                                await Task.Yield();
+                                closestSeries = series;
+                                closestSeriesData = seriesData; 
+                                closestSeriesDistanceSquared = squaredDistance;
                             }
-
-                            return;
                         }
                     }
+                }
+
+                if (closestSeriesData != null)
+                {
+                    if (closestSeriesData != tooltipData)
+                    { 
+                        tooltipData = closestSeriesData;
+                        tooltip = closestSeries.RenderTooltip(closestSeriesData, MarginLeft, MarginTop, Height ?? 0);
+                        chartTooltipContainer.Refresh();
+                        await Task.Yield();
+                    }
+                    return;
                 }
 
                 if (tooltip != null)
@@ -342,7 +384,7 @@ namespace Radzen.Blazor
                     tooltipData = null;
                     tooltip = null;
 
-                    StateHasChanged();
+                    chartTooltipContainer.Refresh();
                     await Task.Yield();
                 }
             }

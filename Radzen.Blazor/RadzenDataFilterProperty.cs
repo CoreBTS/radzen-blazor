@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Dynamic.Core;
@@ -16,6 +18,8 @@ namespace Radzen.Blazor
     /// <typeparam name="TItem">The type of the DataFilter item.</typeparam>
     public partial class RadzenDataFilterProperty<TItem> : ComponentBase, IDisposable
     {
+        internal event Action<object> FilterValueChange;
+
         /// <summary>
         /// Gets or sets the DataFilter.
         /// </summary>
@@ -115,6 +119,13 @@ namespace Radzen.Blazor
         public string Property { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether this property is selected in the filter.
+        /// </summary>
+        /// <value><c>true</c>, if already selected; otherwise <c>false</c>.</value>
+        [Parameter]
+        public bool IsSelected { get; set; }
+
+        /// <summary>
         /// Gets or sets the filter value.
         /// </summary>
         /// <value>The filter value.</value>
@@ -126,7 +137,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The filter template.</value>
         [Parameter]
-        public RenderFragment<RadzenDataFilterProperty<TItem>> FilterTemplate { get; set; }
+        public RenderFragment<CompositeFilterDescriptor> FilterTemplate { get; set; }
 
         /// <summary>
         /// Gets or sets the data type.
@@ -173,7 +184,6 @@ namespace Radzen.Blazor
 
         object filterValue;
         FilterOperator? filterOperator;
-        LogicalFilterOperator? logicalFilterOperator;
 
         /// <summary>
         /// Set parameters as an asynchronous operation.
@@ -184,13 +194,23 @@ namespace Radzen.Blazor
         {
             if (parameters.DidParameterChange(nameof(FilterValue), FilterValue))
             {
-                filterValue = parameters.GetValueOrDefault<object>(nameof(FilterValue));
+                var value = parameters.GetValueOrDefault<object>(nameof(FilterValue));
 
-                if (FilterTemplate != null)
+                if (filterValue != value)
                 {
-                    await DataFilter.ChangeState();
+                    filterValue = value;
 
-                    return;
+                    if (FilterTemplate != null)
+                    {
+                        if (FilterValueChange != null)
+                        {
+                            FilterValueChange(filterValue);
+                        }
+
+                        await DataFilter.Filter();
+
+                        return;
+                    }
                 }
             }
 
@@ -279,7 +299,23 @@ namespace Radzen.Blazor
             if (PropertyAccess.IsNullableEnum(FilterPropertyType))
                 return new FilterOperator[] { FilterOperator.Equals, FilterOperator.NotEquals, FilterOperator.IsNull, FilterOperator.IsNotNull };
 
-            return Enum.GetValues(typeof(FilterOperator)).Cast<FilterOperator>().Where(o => {
+            if ((typeof(IEnumerable).IsAssignableFrom(FilterPropertyType) || typeof(IEnumerable<>).IsAssignableFrom(FilterPropertyType)) 
+                && FilterPropertyType != typeof(string))
+            {
+                return new FilterOperator[] 
+                {
+                    FilterOperator.Contains,
+                    FilterOperator.DoesNotContain,
+                    FilterOperator.Equals,
+                    FilterOperator.NotEquals,
+                    FilterOperator.IsNull,
+                    FilterOperator.IsNotNull,
+                    FilterOperator.IsEmpty,
+                    FilterOperator.IsNotEmpty
+                };
+            }
+
+            return Enum.GetValues(typeof(FilterOperator)).Cast<FilterOperator>().Where(o => o != FilterOperator.In && o != FilterOperator.NotIn).Where(o => {
                 var isStringOperator = o == FilterOperator.Contains || o == FilterOperator.DoesNotContain
                     || o == FilterOperator.StartsWith || o == FilterOperator.EndsWith || o == FilterOperator.IsEmpty || o == FilterOperator.IsNotEmpty;
                 return FilterPropertyType == typeof(string) ? isStringOperator

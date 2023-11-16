@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.JSInterop;
+using Radzen.Blazor;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Dynamic.Core;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Rendering;
-using Microsoft.JSInterop;
 
 namespace Radzen
 {
@@ -17,6 +18,12 @@ namespace Radzen
     public class DropDownBase<T> : DataBoundFormComponent<T>
     {
 #if NET5_0_OR_GREATER
+        /// <summary>
+        /// Gets or sets a value that determines how many additional items will be rendered before and after the visible region. This help to reduce the frequency of rendering during scrolling. However, higher values mean that more elements will be present in the page.
+        /// </summary>
+        [Parameter]
+        public int VirtualizationOverscanCount { get; set; }
+
         internal Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize<object> virtualize;
 
         /// <summary>
@@ -46,7 +53,7 @@ namespace Radzen
 
             if (LoadData.HasDelegate)
             {
-                await LoadData.InvokeAsync(new Radzen.LoadDataArgs() { Skip = request.StartIndex, Top = request.Count, Filter = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search) });
+                await LoadData.InvokeAsync(new Radzen.LoadDataArgs() { Skip = request.StartIndex, Top = request.Count, Filter = searchText });
             }
 
             virtualItems = (LoadData.HasDelegate ? Data : view.Skip(request.StartIndex).Take(top)).Cast<object>().ToList();
@@ -85,6 +92,15 @@ namespace Radzen
 #endif
         }
 
+        internal int GetVirtualizationOverscanCount()
+        {
+#if NET5_0_OR_GREATER
+            return VirtualizationOverscanCount;
+#else
+            return 0;
+#endif
+        }
+
         /// <summary>
         /// Renders the items.
         /// </summary>
@@ -105,6 +121,11 @@ namespace Radzen
                             RenderItem(b, context);
                         });
                     }));
+
+                    if(VirtualizationOverscanCount != default(int))
+                    {
+                        builder.AddAttribute(3, "OverscanCount", VirtualizationOverscanCount);
+                    }
 
                     builder.AddComponentReferenceCapture(7, c => { virtualize = (Microsoft.AspNetCore.Components.Web.Virtualization.Virtualize<object>)c; });
 
@@ -160,7 +181,7 @@ namespace Radzen
 
         internal object GetKey(object item)
         {
-            var value = PropertyAccess.GetItemOrValueFromProperty(item, ValueProperty);
+            var value = GetItemOrValueFromProperty(item, ValueProperty);
 
             if (!keys.Contains(value))
             {
@@ -179,6 +200,13 @@ namespace Radzen
         /// <value><c>true</c> if filtering is allowed; otherwise, <c>false</c>.</value>
         [Parameter]
         public virtual bool AllowFiltering { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether filtering is allowed as you type. Set to <c>true</c> by default.
+        /// </summary>
+        /// <value><c>true</c> if filtering is allowed; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public virtual bool FilterAsYouType { get; set; } = true;
 
         /// <summary>
         /// Gets or sets a value indicating whether the user can clear the value. Set to <c>false</c> by default.
@@ -248,10 +276,10 @@ namespace Radzen
                 return;
             }
 
-            if (selectedItems.Count != View.Cast<object>().Count())
+            if (selectedItems.Count != View.Cast<object>().ToList().Where(i => disabledPropertyGetter != null ? disabledPropertyGetter(i) as bool? != true : true).Count())
             {
                 selectedItems.Clear();
-                selectedItems = View.Cast<object>().ToList();
+                selectedItems = View.Cast<object>().ToList().Where(i => disabledPropertyGetter != null ? disabledPropertyGetter(i) as bool? != true : true).ToList();
             }
             else
             {
@@ -261,7 +289,7 @@ namespace Radzen
             if (!string.IsNullOrEmpty(ValueProperty))
             {
                 System.Reflection.PropertyInfo pi = PropertyAccess.GetElementType(Data.GetType()).GetProperty(ValueProperty);
-                internalValue = selectedItems.Select(i => PropertyAccess.GetItemOrValueFromProperty(i, ValueProperty)).AsQueryable().Cast(pi.PropertyType);
+                internalValue = selectedItems.Select(i => GetItemOrValueFromProperty(i, ValueProperty)).AsQueryable().Cast(pi.PropertyType);
             }
             else
             {
@@ -272,6 +300,15 @@ namespace Radzen
             if (typeof(IList).IsAssignableFrom(typeof(T)))
             {
                 var list = (IList)Activator.CreateInstance(typeof(T));
+                foreach (var i in (IEnumerable)internalValue)
+                {
+                    list.Add(i);
+                }
+                await ValueChanged.InvokeAsync((T)(object)list);
+            }
+            else if (typeof(T).IsGenericType && typeof(ICollection<>).MakeGenericType(typeof(T).GetGenericArguments()[0]).IsAssignableFrom(typeof(T)))
+            {
+                var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(typeof(T).GetGenericArguments()[0]));
                 foreach (var i in (IEnumerable)internalValue)
                 {
                     list.Add(i);
@@ -292,10 +329,13 @@ namespace Radzen
         {
             if (LoadData.HasDelegate && !string.IsNullOrEmpty(ValueProperty))
             {
-                return View != null && View.Cast<object>().All(i => IsItemSelectedByValue(PropertyAccess.GetValue(i, ValueProperty)));
+                return View != null && View.Cast<object>().ToList()
+                    .Where(i => disabledPropertyGetter != null ? disabledPropertyGetter(i) as bool? != true : true)
+                    .All(i => IsItemSelectedByValue(GetItemOrValueFromProperty(i, ValueProperty)));
             }
 
-            return View != null && selectedItems.Count == View.Cast<object>().Count();
+            return View != null && selectedItems.Count == View.Cast<object>().ToList()
+                    .Where(i => disabledPropertyGetter != null ? disabledPropertyGetter(i) as bool? != true : true).Count();
         }
 
         /// <summary>
@@ -316,6 +356,7 @@ namespace Radzen
                 return;
 
             searchText = null;
+            await SearchTextChanged.InvokeAsync(searchText);
             await JSRuntime.InvokeAsync<string>("Radzen.setInputValue", search, "");
 
             internalValue = default(T);
@@ -364,10 +405,78 @@ namespace Radzen
                     }
 
                     InvokeAsync(OnDataChanged);
-
-                    StateHasChanged();
                 }
             }
+        }
+
+        /// <inheritdoc/>
+        protected override void OnParametersSet()
+        {
+            base.OnParametersSet();
+
+            if (_data != null)
+            {
+                var query = _data.AsQueryable();
+
+                var type = query.ElementType;
+
+                if (type == typeof(object) && typeof(EnumerableQuery).IsAssignableFrom(query.GetType()) && query.Any())
+                {
+                    type = query.FirstOrDefault().GetType();
+                }
+
+                if (!string.IsNullOrEmpty(ValueProperty))
+                {
+                    valuePropertyGetter = PropertyAccess.Getter<object, object>(ValueProperty, type);
+                }
+
+                if (!string.IsNullOrEmpty(TextProperty))
+                {
+                    textPropertyGetter = PropertyAccess.Getter<object, object>(TextProperty, type);
+                }
+
+                if (!string.IsNullOrEmpty(DisabledProperty))
+                {
+                    disabledPropertyGetter = PropertyAccess.Getter<object, object>(DisabledProperty, type);
+                }
+            }
+        }
+
+        internal Func<object, object> valuePropertyGetter;
+        internal Func<object, object> textPropertyGetter;
+        internal Func<object, object> disabledPropertyGetter;
+
+        /// <summary>
+        /// Gets the item or value from property.
+        /// </summary>
+        /// <param name="item">The item.</param>
+        /// <param name="property">The property.</param>
+        /// <returns>System.Object.</returns>
+        public object GetItemOrValueFromProperty(object item, string property)
+        {
+            if (item != null)
+            {
+                if (property == TextProperty && textPropertyGetter != null)
+                {
+                    return textPropertyGetter(item);
+                }
+                else if (property == ValueProperty && valuePropertyGetter != null)
+                {
+                    return valuePropertyGetter(item);
+                }
+                else if (property == DisabledProperty && disabledPropertyGetter != null)
+                {
+                    return disabledPropertyGetter(item);
+                }
+
+                var enumValue = item as Enum;
+                if (enumValue != null)
+                {
+                    return Radzen.Blazor.EnumExtensions.GetDisplayDescription(enumValue);
+                }
+            }
+
+            return item;
         }
 
 #if NET5_0_OR_GREATER
@@ -495,7 +604,7 @@ namespace Radzen
         /// </summary>
         /// <param name="args">The <see cref="Microsoft.AspNetCore.Components.Web.KeyboardEventArgs"/> instance containing the event data.</param>
         /// <param name="isFilter">if set to <c>true</c> [is filter].</param>
-        private async System.Threading.Tasks.Task HandleKeyPress(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, bool isFilter = false)
+        protected virtual async System.Threading.Tasks.Task HandleKeyPress(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args, bool isFilter = false)
         {
             if (Disabled)
                 return;
@@ -551,7 +660,7 @@ namespace Radzen
                     //
                 }
             }
-            else if (Multiple && key == "Space")
+            else if (Multiple && key == "Enter")
             {
                 if (selectedIndex >= 0 && selectedIndex <= items.Count() - 1)
                 {
@@ -580,7 +689,7 @@ namespace Radzen
                     Debounce(DebounceFilter, FilterDelay);
                 }
             }
-            else if (AllowFiltering && isFilter)
+            else if (AllowFiltering && isFilter && FilterAsYouType)
             {
                 Debounce(DebounceFilter, FilterDelay);
             }
@@ -611,7 +720,6 @@ namespace Radzen
         {
             if (!LoadData.HasDelegate)
             {
-                searchText = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search);
                 _view = null;
                 if (IsVirtualizationAllowed())
                 {
@@ -637,6 +745,10 @@ namespace Radzen
                     {
                         await InvokeAsync(virtualize.RefreshDataAsync);
                     }
+                    else
+                    {
+                        await LoadData.InvokeAsync(await GetLoadDataArgs());
+                    }
                     await InvokeAsync(() => { StateHasChanged(); });
 #endif
                 }
@@ -650,6 +762,7 @@ namespace Radzen
                 selectedIndex = -1;
 
             await JSRuntime.InvokeAsync<string>("Radzen.repositionPopup", Element, PopupID);
+            await SearchTextChanged.InvokeAsync(SearchText);
         }
 
         /// <summary>
@@ -732,7 +845,7 @@ namespace Radzen
         /// Handles the <see cref="E:KeyPress" /> event.
         /// </summary>
         /// <param name="args">The <see cref="Microsoft.AspNetCore.Components.Web.KeyboardEventArgs"/> instance containing the event data.</param>
-        protected async System.Threading.Tasks.Task OnKeyPress(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args)
+        protected virtual async System.Threading.Tasks.Task OnKeyPress(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs args)
         {
             await HandleKeyPress(args);
         }
@@ -765,14 +878,14 @@ namespace Radzen
 #if NET5_0_OR_GREATER
             if (AllowVirtualization)
             {
-                return new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, Filter = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search) };
+                return await Task.FromResult(new Radzen.LoadDataArgs() { Skip = 0, Top = PageSize, Filter = searchText });
             }
             else
             {
-                return new Radzen.LoadDataArgs() { Filter = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search) };
+                return await Task.FromResult(new Radzen.LoadDataArgs() { Filter = searchText });
             }
 #else
-            return new Radzen.LoadDataArgs() { Filter = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search) };
+            return await Task.FromResult(new Radzen.LoadDataArgs() { Filter = searchText });
 #endif
         }
 
@@ -852,7 +965,7 @@ namespace Radzen
 
             if (valueAsEnumerable != null)
             {
-                if (valueAsEnumerable.OfType<object>().Count() != selectedItems.Count)
+                if (!valueAsEnumerable.Cast<object>().SequenceEqual(selectedItems.Select(i => GetItemOrValueFromProperty(i, ValueProperty))))
                 {
                     selectedItems.Clear();
                 }
@@ -877,11 +990,11 @@ namespace Radzen
         /// </summary>
         /// <param name="item">The item.</param>
         /// <returns><c>true</c> if the specified item is selected; otherwise, <c>false</c>.</returns>
-        internal bool isSelected(object item)
+        internal bool IsSelected(object item)
         {
-            if (LoadData.HasDelegate && !string.IsNullOrEmpty(ValueProperty))
+            if (!string.IsNullOrEmpty(ValueProperty))
             {
-                return IsItemSelectedByValue(PropertyAccess.GetValue(item, ValueProperty));
+                return IsItemSelectedByValue(GetItemOrValueFromProperty(item, ValueProperty));
             }
             else
             {
@@ -891,7 +1004,7 @@ namespace Radzen
                 }
                 else
                 {
-                    return object.Equals(item,selectedItem);
+                    return object.Equals(item, selectedItem);
                 }
             }
         }
@@ -968,7 +1081,35 @@ namespace Radzen
 
                         query.Add($"{Enum.GetName(typeof(StringFilterOperator), FilterOperator)}(@0)");
 
-                        _view = Query.Where(String.Join(".", query), ignoreCase ? searchText.ToLower() : searchText);
+                        var search = ignoreCase ? searchText.ToLower() : searchText;
+
+                        if (Query.ElementType == typeof(Enum))
+                        {
+                            _view = Query.Cast<Enum>()
+                                .Where((Func<Enum, bool>)(i =>
+                                {
+                                    var value = ignoreCase ? i.GetDisplayDescription().ToLower() : i.GetDisplayDescription();
+
+                                    if (FilterOperator == StringFilterOperator.Contains)
+                                    {
+                                        return value.Contains(search);
+                                    }
+                                    else if (FilterOperator == StringFilterOperator.StartsWith)
+                                    {
+                                        return value.StartsWith(search);
+                                    }
+                                    else if (FilterOperator == StringFilterOperator.EndsWith)
+                                    {
+                                        return value.EndsWith(search);
+                                    }
+
+                                    return value == search;
+                                })).AsQueryable();
+                        }
+                        else
+                        {
+                            _view = Query.Where(String.Join(".", query), search);
+                        }
                     }
                     else
                     {
@@ -1028,6 +1169,11 @@ namespace Radzen
         /// <param name="raiseChange">if set to <c>true</c> [raise change].</param>
         public async System.Threading.Tasks.Task SelectItem(object item, bool raiseChange = true)
         {
+            if (disabledPropertyGetter != null && disabledPropertyGetter(item) as bool? == true)
+            {
+                return;
+            }
+
             if (!Multiple)
             {
                 if (object.Equals(item, selectedItem))
@@ -1049,40 +1195,23 @@ namespace Radzen
             }
             else
             {
-                if (!string.IsNullOrEmpty(ValueProperty))
-                {
-                    if (LoadData.HasDelegate)
-                    {
-                        var v = PropertyAccess.GetValue(item, ValueProperty);
-                        var si = (selectedItems ?? Enumerable.Empty<object>()).AsQueryable().Where($@"object.Equals({ValueProperty},@0)", v).FirstOrDefault();
-                        if (si == null)
-                        {
-                            selectedItems.Add(item);
-                        }
-                        else
-                        {
-                            selectedItems.Remove(si);
-                        }
-                    }
-                    else
-                    {
-                        UpdateSelectedItems(item);
-                    }
-                }
-                else
-                {
-                    UpdateSelectedItems(item);
-                }
+                UpdateSelectedItems(item);
 
                 if (!string.IsNullOrEmpty(ValueProperty))
                 {
                     System.Reflection.PropertyInfo pi = PropertyAccess.GetElementType(Data.GetType()).GetProperty(ValueProperty);
-                    internalValue = selectedItems.Select(i => PropertyAccess.GetItemOrValueFromProperty(i, ValueProperty)).AsQueryable().Cast(pi.PropertyType);
+                    internalValue = selectedItems.Select(i => GetItemOrValueFromProperty(i, ValueProperty)).AsQueryable().Cast(pi.PropertyType);
                 }
                 else
                 {
-                    var firstElement = Data.Cast<object>().FirstOrDefault();
-                    var elementType = firstElement != null ? firstElement.GetType() : null;
+                    var query = Data.AsQueryable();
+                    var elementType = query.ElementType;
+
+                    if (elementType == typeof(object) && typeof(EnumerableQuery).IsAssignableFrom(query.GetType()) && query.Any())
+                    {
+                        elementType = query.FirstOrDefault().GetType();
+                    }
+
                     if (elementType != null)
                     {
                         internalValue = selectedItems.AsQueryable().Cast(elementType);
@@ -1114,6 +1243,22 @@ namespace Radzen
                             await ValueChanged.InvokeAsync((T)(object)list);
                         }
                     }
+                    else if (typeof(T).IsGenericType && typeof(ICollection<>).MakeGenericType(typeof(T).GetGenericArguments()[0]).IsAssignableFrom(typeof(T)))
+                    {
+                        if (object.Equals(internalValue, null))
+                        {
+                            await ValueChanged.InvokeAsync(default(T));
+                        }
+                        else
+                        {
+                            var list = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(typeof(T).GetGenericArguments()[0]));
+                            foreach (var i in (IEnumerable)internalValue)
+                            {
+                                list.Add(i);
+                            }
+                            await ValueChanged.InvokeAsync((T)(object)list);
+                        }
+                    }
                     else
                     {
                         await ValueChanged.InvokeAsync(object.Equals(internalValue, null) ? default(T) : (T)internalValue);
@@ -1128,15 +1273,37 @@ namespace Radzen
             StateHasChanged();
         }
 
+        /// <inheritdoc />
+        public override object GetValue()
+        {
+            return internalValue;
+        }
+
         internal void UpdateSelectedItems(object item)
         {
-            if (selectedItems.IndexOf(item) == -1)
+            if (!string.IsNullOrEmpty(ValueProperty))
             {
-                selectedItems.Add(item);
+                var value = GetItemOrValueFromProperty(item, ValueProperty);
+
+                if (!IsItemSelectedByValue(value))
+                {
+                    selectedItems.Add(item);
+                }
+                else
+                {
+                    selectedItems = selectedItems.AsQueryable().Where($@"!object.Equals(it.{ValueProperty},@0)", value).ToList();
+                }
             }
             else
             {
-                selectedItems.Remove(item);
+                if (!selectedItems.Any(i => object.Equals(i, item)))
+                {
+                    selectedItems.Add(item);
+                }
+                else
+                {
+                    selectedItems = selectedItems.Where(i => !object.Equals(i, item)).ToList();
+                }
             }
         }
 
@@ -1146,19 +1313,20 @@ namespace Radzen
         /// <param name="value">The value.</param>
         protected virtual void SelectItemFromValue(object value)
         {
-            if (value != null && View != null)
+            var view = LoadData.HasDelegate ? Data : View;
+            if (value != null && view != null)
             {
                 if (!Multiple)
                 {
                     if (!string.IsNullOrEmpty(ValueProperty))
                     {
-                        if (typeof(EnumerableQuery).IsAssignableFrom(View.GetType()))
+                        if (typeof(EnumerableQuery).IsAssignableFrom(view.GetType()))
                         {
-                            SelectedItem = View.OfType<object>().Where(i => object.Equals(PropertyAccess.GetValue(i, ValueProperty), value)).FirstOrDefault();
+                            SelectedItem = view.OfType<object>().Where(i => object.Equals(GetItemOrValueFromProperty(i, ValueProperty), value)).FirstOrDefault();
                         }
                         else
                         {
-                            SelectedItem = View.AsQueryable().Where($@"{ValueProperty} == @0", value).FirstOrDefault();
+                            SelectedItem = view.AsQueryable().Where($@"{ValueProperty} == @0", value).FirstOrDefault();
                         }
                     }
                     else
@@ -1181,16 +1349,16 @@ namespace Radzen
                             {
                                 dynamic item;
 
-                                if (typeof(EnumerableQuery).IsAssignableFrom(View.GetType()))
+                                if (typeof(EnumerableQuery).IsAssignableFrom(view.GetType()))
                                 {
-                                    item = View.OfType<object>().Where(i => object.Equals(PropertyAccess.GetValue(i, ValueProperty), v)).FirstOrDefault();
+                                    item = view.OfType<object>().Where(i => object.Equals(GetItemOrValueFromProperty(i, ValueProperty), v)).FirstOrDefault();
                                 }
                                 else
                                 {
-                                    item = View.AsQueryable().Where($@"{ValueProperty} == @0", v).FirstOrDefault();
+                                    item = view.AsQueryable().Where($@"{ValueProperty} == @0", v).FirstOrDefault();
                                 }
 
-                                if (!object.Equals(item, null) && (LoadData.HasDelegate ? !IsItemSelectedByValue(v) : selectedItems.IndexOf(item) == -1))
+                                if (!object.Equals(item, null) && !selectedItems.AsQueryable().Where($@"object.Equals(it.{ValueProperty},@0)", v).Any())
                                 {
                                     selectedItems.Add(item);
                                 }
@@ -1212,8 +1380,17 @@ namespace Radzen
 
         internal bool IsItemSelectedByValue(object v)
         {
-            return ((Multiple ? selectedItems : selectedItem != null ? new[] { selectedItem } : Enumerable.Empty<object>()) ?? Enumerable.Empty<object>())
-                .AsQueryable().Where($@"object.Equals({ValueProperty},@0)", v).Any();
+            switch (internalValue)
+            {
+                case string s:
+                    return object.Equals(s, v);
+                case IEnumerable enumerable:
+                    return enumerable.Cast<object>().Contains(v);
+                case null:
+                    return false;
+                default:
+                    return object.Equals(internalValue, v);
+            }
         }
 
         /// <inheritdoc />

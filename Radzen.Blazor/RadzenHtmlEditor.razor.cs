@@ -12,12 +12,26 @@ namespace Radzen.Blazor
     /// <code>
     /// &lt;RadzenHtmlEditor @bind-Value=@html /&gt;
     /// @code {
-    ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!"; 
+    ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!";
     /// }
     /// </code>
     /// </example>
     public partial class RadzenHtmlEditor : FormComponent<string>
     {
+        /// <summary>
+        /// Specifies whether to show the toolbar. Set it to false to hide the toolbar. Default value is true.
+        /// </summary>
+        [Parameter]
+        public bool ShowToolbar { get; set; } = true;
+
+        /// <summary>
+        /// Gets or sets the mode of the editor.
+        /// </summary>
+        [Parameter]
+        public HtmlEditorMode Mode { get; set; } = HtmlEditorMode.Design;
+
+        private HtmlEditorMode mode;
+
         /// <summary>
         /// Gets or sets the child content.
         /// </summary>
@@ -32,22 +46,45 @@ namespace Radzen.Blazor
         public IDictionary<string, string> UploadHeaders { get; set; }
 
         /// <summary>
+        /// Gets or sets the input.
+        /// </summary>
+        /// <value>The input.</value>
+        [Parameter]
+        public EventCallback<string> Input { get; set; }
+
+        /// <summary>
         /// A callback that will be invoked when the user pastes content in the editor. Commonly used to filter unwanted HTML.
         /// </summary>
         /// <example>
         /// <code>
         /// &lt;RadzenHtmlEditor @bind-Value=@html Paste=@OnPaste /&gt;
         /// @code {
-        ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!"; 
+        ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!";
         ///   void OnPaste(HtmlEditorPasteEventArgs args)
         ///   {
         ///     // Set args.Html to filter unwanted tags.
-        ///     args.Html = args.Html.Replace("&lt;br>&gt;", "");
+        ///     args.Html = args.Html.Replace("&lt;br&gt;", "");
         ///   }
         /// </code>
         /// </example>
         [Parameter]
         public EventCallback<HtmlEditorPasteEventArgs> Paste { get; set; }
+
+        /// <summary>
+        /// A callback that will be invoked when there is an error during upload.
+        /// </summary>
+        [Parameter]
+        public EventCallback<UploadErrorEventArgs> UploadError { get; set; }
+
+        /// <summary>
+        /// Called on upload error.
+        /// </summary>
+        /// <param name="error">The error.</param>
+        [JSInvokable("OnError")]
+        public async Task OnError(string error)
+        {
+            await UploadError.InvokeAsync(new UploadErrorEventArgs { Message = error });
+        }
 
         /// <summary>
         /// A callback that will be invoked when the user executes a command of the editor (e.g. by clicking one of the tools).
@@ -58,7 +95,7 @@ namespace Radzen.Blazor
         ///   &lt;RadzenHtmlEditorCustomTool CommandName="InsertToday" Icon="today" Title="Insert today" /&gt;
         /// &lt;/RadzenHtmlEditor&gt;
         /// @code {
-        ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!"; 
+        ///   string html = "@lt;strong&gt;Hello&lt;/strong&gt; world!";
         ///   async Task OnExecute(HtmlEditorExecuteEventArgs args)
         ///   {
         ///     if (args.CommandName == "InsertToday")
@@ -78,6 +115,25 @@ namespace Radzen.Blazor
         public string UploadUrl { get; set; }
 
         ElementReference ContentEditable { get; set; }
+        RadzenTextArea TextArea { get; set; }
+
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Focuses the editor.
+        /// </summary>
+        public override ValueTask FocusAsync()
+        {
+
+            if (mode == HtmlEditorMode.Design)
+            {
+                return ContentEditable.FocusAsync();
+            }
+            else
+            {
+                return TextArea.Element.FocusAsync();
+            }
+        }
+#endif
 
         internal RadzenHtmlEditorCommandState State { get; set; } = new RadzenHtmlEditorCommandState();
 
@@ -117,10 +173,18 @@ namespace Radzen.Blazor
             await OnChange();
         }
 
+        private async Task SourceChanged(string html)
+        {
+            Html = html;
+            await JSRuntime.InvokeVoidAsync("Radzen.innerHTML", ContentEditable, Html);
+            await OnChange();
+            StateHasChanged();
+        }
+
         async Task OnChange()
         {
-            await Change.InvokeAsync(Html);
             await ValueChanged.InvokeAsync(Html);
+            await Change.InvokeAsync(Html);
         }
 
         internal async Task OnExecuteAsync(string name)
@@ -161,6 +225,11 @@ namespace Radzen.Blazor
         bool visibleChanged = false;
         bool firstRender = true;
 
+        internal ValueTask<T> GetSelectionAttributes<T>(string selector, string[] attributes)
+        {
+            return JSRuntime.InvokeAsync<T>("Radzen.selectionAttributes", selector, attributes, ContentEditable);
+        }
+
         /// <inheritdoc />
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -170,17 +239,16 @@ namespace Radzen.Blazor
 
             if (firstRender || visibleChanged)
             {
-                visibleChanged = false;
-
                 if (Visible)
                 {
                     await JSRuntime.InvokeVoidAsync("Radzen.createEditor", ContentEditable, UploadUrl, Paste.HasDelegate, Reference);
                 }
             }
 
-            if (valueChanged)
+            if (valueChanged || visibleChanged)
             {
                 valueChanged = false;
+                visibleChanged = false;
 
                 Html = Value;
 
@@ -191,12 +259,30 @@ namespace Radzen.Blazor
             }
         }
 
+        internal void SetMode(HtmlEditorMode value)
+        {
+            mode = value;
+
+            StateHasChanged();
+        }
+
+        /// <summary>
+        /// Returns the current mode of the editor.
+        /// </summary>
+        public HtmlEditorMode GetMode()
+        {
+            return mode;
+        }
+
         string Html { get; set; }
 
         /// <inheritdoc />
         protected override void OnInitialized()
         {
             Html = Value;
+            mode = Mode;
+
+            base.OnInitialized();
         }
 
         /// <summary>
@@ -207,6 +293,7 @@ namespace Radzen.Blazor
         public void OnChange(string html)
         {
             Html = html;
+            Input.InvokeAsync(html);
         }
 
         /// <summary>
@@ -231,6 +318,11 @@ namespace Radzen.Blazor
             if (parameters.DidParameterChange(nameof(Value), Value))
             {
                 valueChanged = Html != parameters.GetValueOrDefault<string>(nameof(Value));
+            }
+
+            if (parameters.DidParameterChange(nameof(Mode), Mode))
+            {
+                mode = Mode;
             }
 
             visibleChanged = parameters.DidParameterChange(nameof(Visible), Visible);

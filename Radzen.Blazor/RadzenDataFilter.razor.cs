@@ -259,6 +259,32 @@ namespace Radzen.Blazor
         [Parameter]
         public string IsNotEmptyText { get; set; } = "Is not empty";
 
+        /// <summary>
+        /// Gets or sets a value indicating whether the columns can be filtered.
+        /// </summary>
+        /// <value><c>true</c> if columns can be filtered; otherwise, <c>false</c>.</value>
+        [Parameter]
+        public bool AllowColumnFiltering { get; set; }
+        
+        /// <summary>
+        /// Gets or sets a value indicating whether properties can be reused in the filter.
+        /// </summary>
+        /// <value><c>true</c>, if there is only one filter by property; otherwise <c>false</c>.</value>
+        [Parameter]
+        public bool UniqueFilters { get; set; }
+
+        /// <summary>
+        /// Gets the properties collection.
+        /// </summary>
+        /// <value>The properties collection.</value>
+        public IList<RadzenDataFilterProperty<TItem>> PropertiesCollection
+        {
+            get
+            {
+                return properties;
+            }
+        }
+        
         internal List<RadzenDataFilterProperty<TItem>> properties = new List<RadzenDataFilterProperty<TItem>>();
         internal void AddProperty(RadzenDataFilterProperty<TItem> property)
         {
@@ -293,7 +319,7 @@ namespace Radzen.Blazor
             await ViewChanged.InvokeAsync(View);
         }
 
-        // <summary>
+        /// <summary>
         /// Gets or sets the view changed callback.
         /// </summary>
         /// <value>The view changed callback.</value>
@@ -314,6 +340,10 @@ namespace Radzen.Blazor
 
         internal async Task AddFilter(bool isGroup)
         {
+            if (UniqueFilters && properties.All(f => f.IsSelected))
+            {
+                return;
+            }
             if (isGroup)
             {
                 Filters = Filters.Concat(new CompositeFilterDescriptor[]
@@ -342,7 +372,9 @@ namespace Radzen.Blazor
         public async Task ClearFilters()
         {
             Filters = Enumerable.Empty<CompositeFilterDescriptor>();
-
+            
+            properties.ForEach(p => p.IsSelected = false);
+            
             if (Auto)
             {
                 await Filter();

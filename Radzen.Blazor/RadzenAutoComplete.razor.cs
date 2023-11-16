@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Components.Web;
 using System.Linq;
 using System;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace Radzen.Blazor
 {
@@ -23,11 +24,24 @@ namespace Radzen.Blazor
     public partial class RadzenAutoComplete : DataBoundFormComponent<string>
     {
         /// <summary>
+        /// Specifies additional custom attributes that will be rendered by the input.
+        /// </summary>
+        /// <value>The attributes.</value>
+        public IReadOnlyDictionary<string, object> InputAttributes { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this <see cref="RadzenAutoComplete"/> is multiline.
         /// </summary>
         /// <value><c>true</c> if multiline; otherwise, <c>false</c>.</value>
         [Parameter]
         public bool Multiline { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Popup height.
+        /// </summary>
+        /// <value>The number Popup height.</value>
+        [Parameter]
+        public string PopupStyle { get; set; } = "display:none; transform: none; box-sizing: border-box; max-height: 200px;";
 
         /// <summary>
         /// Gets or sets the template.
@@ -84,15 +98,20 @@ namespace Radzen.Blazor
                     //
                 }
             }
-            else if (key == "Enter")
+            else if (key == "Enter" || key == "Tab")
             {
                 if (selectedIndex >= 0 && selectedIndex <= items.Count() - 1)
                 {
                     await OnSelectItem(items.ElementAt(selectedIndex));
                     selectedIndex = -1;
                 }
+
+                if (key == "Tab")
+                {
+                    await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
+                }
             }
-            else if (key == "Escape" || key == "Tab")
+            else if (key == "Escape")
             {
                 await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
             }
@@ -109,7 +128,10 @@ namespace Radzen.Blazor
             var value = await JSRuntime.InvokeAsync<string>("Radzen.getInputValue", search);
 
             if (value.Length < MinLength)
+            {
+                await JSRuntime.InvokeVoidAsync("Radzen.closePopup", PopupID);
                 return;
+            }
 
             if (!LoadData.HasDelegate)
             {
@@ -265,5 +287,15 @@ namespace Radzen.Blazor
                 await JSRuntime.InvokeVoidAsync("Radzen.destroyPopup", PopupID);
             }
         }
+
+#if NET5_0_OR_GREATER
+        /// <summary>
+        /// Sets the focus on the input element.
+        /// </summary>
+        public override async ValueTask FocusAsync()
+        {
+            await search.FocusAsync();
+        }
+#endif
     }
 }

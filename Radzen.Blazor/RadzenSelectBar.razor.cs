@@ -188,7 +188,7 @@ namespace Radzen.Blazor
             {
                 var type = typeof(TValue).IsGenericType ? typeof(TValue).GetGenericArguments()[0] : typeof(TValue);
 
-                var selectedValues = Value != null ? ((IEnumerable)Value).AsQueryable().Cast(type).AsEnumerable().ToList() : new List<dynamic>();
+                var selectedValues = Value != null ? QueryableExtension.ToList(((IEnumerable)Value).AsQueryable().Cast(type)) : new List<dynamic>();
 
                 if (!selectedValues.Contains(item.Value))
                 {
@@ -210,6 +210,14 @@ namespace Radzen.Blazor
             if (FieldIdentifier.FieldName != null) { EditContext?.NotifyFieldChanged(FieldIdentifier); }
             await Change.InvokeAsync(Value);
 
+            StateHasChanged();
+        }
+
+        /// <summary>
+        /// Refreshes this instance.
+        /// </summary>
+        public void Refresh()
+        {
             StateHasChanged();
         }
     }

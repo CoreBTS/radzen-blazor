@@ -74,17 +74,14 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
 }
 
 %dropdown {
-  display: inline-block;
+  box-sizing: border-box;
+  display: inline-flex;
+  flex-direction: column;
   position: relative;
   overflow: hidden;
+  text-align: start;
 
   @extend %input;
-
-  .rz-helper-hidden-accessible {
-    opacity: 0;
-    height: 0;
-    overflow: hidden;
-  }
 
   &.rz-state-disabled {
     @extend %input-disabled;
@@ -186,19 +183,19 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
   }
 }
 
-.rz-dropdown-items {
+%rz-dropdown-items, .rz-dropdown-items {
   list-style: none;
   padding: var(--rz-dropdown-items-padding);
   margin: 0;
 
   li {
     /* The 'No results found' item has no CSS class */
-    @extend .rz-dropdown-item;
+    @extend %rz-dropdown-item;
   }
 }
 
 .rz-multiselect-items {
-  @extend .rz-dropdown-items;
+  @extend %rz-dropdown-items;
 }
 
 .rz-dropdown-items-wrapper,
@@ -218,7 +215,7 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
   border-bottom: var(--rz-dropdown-filter-border);
 }
 
-.rz-dropdown-filter {
+%rz-dropdown-filter, .rz-dropdown-filter {
   background-color: transparent;
   color: var(--rz-text-color);
 }
@@ -265,7 +262,7 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
   }
 }
 
-.rz-dropdown-item {
+%rz-dropdown-item, .rz-dropdown-item {
   padding: var(--rz-dropdown-item-padding);
   transition: var(--rz-dropdown-item-transition);
 
@@ -284,13 +281,13 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
   border-bottom: var(--rz-dropdown-filter-border);
 
   .rz-inputtext {
-    @extend .rz-dropdown-filter;
+    @extend %rz-dropdown-filter;
     padding: 0;
   }
 }
 
 .rz-multiselect-item {
-    @extend .rz-dropdown-item;
+    @extend %rz-dropdown-item;
     display: flex;
     align-items: center;
 }
@@ -301,7 +298,8 @@ $multiselect-checkbox-margin: 0 0.5rem 0 0 !default;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  padding-right: calc(var(--rz-dropdown-trigger-icon-width) / 2);
+  padding: var(--rz-dropdown-label-padding);
+  margin: 0;
 }
 
 .rz-dropdown-chips {
